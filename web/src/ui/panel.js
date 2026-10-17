@@ -6,7 +6,7 @@ import { icon } from './icons.js';
 import { lightColor } from '../three/lights.js';
 import { MODE_COLORS } from '../three/ac.js';
 import { AC_SWINGS } from '../store.js';
-import { haptic, isPhone } from '../bridge.js';
+import { haptic, isPhone, post } from '../bridge.js';
 
 const MODE_LABEL = { cool: 'Cool', heat: 'Heat', dry: 'Dry', fan: 'Fan', auto: 'Auto' };
 const FAN_LABEL = { auto: 'Auto', low: 'Low', medium: 'Medium', high: 'High', turbo: 'Turbo' };
@@ -44,6 +44,7 @@ export function createPanel(root, config, store, { onFocus, onMenu }) {
   const homeSub = h('div.home-sub');
   const power = h('button.round.power', { title: 'Everything on / off', 'aria-label': 'Toggle everything', onclick: toggleEverything }, icon('power', 21, 2.2));
   const gear = h('button.round', { title: 'Floor plan', 'aria-label': 'Floor plan menu', onclick: () => onMenu(gear) }, icon('settings', 17));
+  const quit = isPhone ? null : h('button.round.quit', { title: 'Quit House Control', 'aria-label': 'Quit House Control', onclick: () => post('quit') }, icon('close', 17, 2.2));
   // Shown while an AI assistant has a link to this home (AI Access on the Mac).
   const aiBadge = h('button.ai-badge', { hidden: true, title: 'An AI assistant has access — click to manage', 'aria-label': 'AI access',
     onclick: () => onMenu(aiBadge, 'agent') }, icon('sparkles', 13, 2.2), h('span', 'AI'));
@@ -68,7 +69,7 @@ export function createPanel(root, config, store, { onFocus, onMenu }) {
     h('header.top',
       h('div.home', h('div.home-badge', icon('home', 17)),
         h('div', h('div.home-name', config.name), homeSub)),
-      aiBadge, gear, power),
+      aiBadge, gear, power, quit),
     tooltip, panel, sheet, toastEl);
   const card = h('div.card.booting', h('div.notch'), clip);
   root.replaceChildren(card);

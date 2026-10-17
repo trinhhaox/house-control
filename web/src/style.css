@@ -200,7 +200,10 @@ html.native .card { width: auto; height: auto; box-shadow:
   color: var(--muted);
   transition: transform 260ms var(--spring), background 200ms, color 200ms, box-shadow 300ms;
 }
-@media (hover: hover) { .round:hover { background: rgba(255, 255, 255, 0.16); color: var(--text); } }
+@media (hover: hover) {
+  .round:hover { background: rgba(255, 255, 255, 0.16); color: var(--text); }
+  .round.quit:hover { background: rgba(239, 68, 68, 0.22); color: #f87171; border-color: rgba(239, 68, 68, 0.4); }
+}
 .round:active { transform: scale(0.9); }
 
 .power {

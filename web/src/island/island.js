@@ -48,10 +48,11 @@ export async function bootIsland(root) {
   const title = h('div.isle-title', h('span.isle-badge', icon('home', 14)), h('b', config.name));
   const status = h('div.isle-status');
   const power = h('button.isle-power', { 'aria-label': 'Everything on / off', onclick: toggleEverything }, icon('power', 15, 2.4));
+  const quit = h('button.isle-quit', { title: 'Quit House Control', 'aria-label': 'Quit House Control', onclick: () => post('quit') }, icon('close', 13, 2.4));
   const scenes = h('div.isle-scenes');
   const list = h('div.isle-list');
   const body = h('div.isle-body',
-    h('div.isle-head', title, h('i.isle-gap'), h('div.isle-right', status, power)),
+    h('div.isle-head', title, h('i.isle-gap'), h('div.isle-right', status, power, quit)),
     h('div.isle-main', h('div.isle-stage', canvas), h('div.isle-side', scenes, list)));
   const shape = h('div.isle-shape', earLeft, earRight, body);
   const isle = h('div.isle', h('div.isle-glow'), shape);
