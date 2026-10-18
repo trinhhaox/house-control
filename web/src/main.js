@@ -52,7 +52,7 @@ async function boot() {
   }
 
   const store = createStore(config);
-  const linked = [...config.lights, ...config.acs].some(isLinked);
+  const linked = [...config.lights, ...config.acs, ...config.sensors].some(isLinked);
   // Never invent a starting state for real hardware: it reports its own.
   if (!store.restored && !linked) {
     // First launch: start with something worth looking at.

@@ -27,6 +27,7 @@ export function createStore(config) {
   const listeners = new Set();
   const lightCfg = new Map(config.lights.map((l) => [l.id, l]));
   const acCfg = new Map(config.acs.map((a) => [a.id, a]));
+  const sensorCfg = new Map(config.sensors.map((s) => [s.id, s]));
 
   const state = { lights: {}, acs: {}, sensors: {}, scene: null };
   for (const l of config.lights) state.lights[l.id] = defaultLight(l);
@@ -34,6 +35,41 @@ export function createStore(config) {
   for (const s of config.sensors) state.sensors[s.id] = defaultSensor();
   // What each real AC can do, as reported by the native side. A simulated AC can do everything.
   const features = {};
+
+  const SENSOR_HISTORY_KEY = `house_sensor_hist_${config.name}`;
+  const sensorHistory = {};
+  for (const s of config.sensors) sensorHistory[s.id] = [];
+  try {
+    const savedHist = JSON.parse(localStorage.getItem(SENSOR_HISTORY_KEY) || '{}');
+    for (const [id, list] of Object.entries(savedHist)) {
+      if (sensorHistory[id] && Array.isArray(list)) sensorHistory[id] = list.slice(-36);
+    }
+  } catch { /* ignore */ }
+
+  function syncRoomTempFromSensor(sensorId) {
+    const s = state.sensors[sensorId];
+    if (!s || !Number.isFinite(s.temperature)) return;
+    const cfg = sensorCfg.get(sensorId);
+    if (!cfg || !cfg.room) return;
+    for (const ac of config.acs) {
+      if (ac.room === cfg.room && state.acs[ac.id]) {
+        state.acs[ac.id].roomTemp = Math.round(s.temperature * 10) / 10;
+      }
+    }
+  }
+
+  function recordSensorReading(id, s) {
+    if (!Number.isFinite(s?.temperature)) return;
+    syncRoomTempFromSensor(id);
+    const list = sensorHistory[id] || (sensorHistory[id] = []);
+    const now = Date.now();
+    const last = list[list.length - 1];
+    if (!last || now - last.t > 120000 || Math.abs(last.temp - s.temperature) >= 0.2) {
+      list.push({ t: now, temp: s.temperature, humidity: s.humidity ?? null });
+      if (list.length > 36) list.shift();
+      try { localStorage.setItem(SENSOR_HISTORY_KEY, JSON.stringify(sensorHistory)); } catch { /* ignore */ }
+    }
+  }
 
   let restored = false;
   try {
@@ -234,6 +270,7 @@ export function createStore(config) {
       for (const [id, s] of Object.entries(other.sensors || {})) {
         if (!state.sensors[id] || JSON.stringify(state.sensors[id]) === JSON.stringify(s)) continue;
         Object.assign(state.sensors[id], s);
+        recordSensorReading(id, state.sensors[id]);
         any = true;
       }
       const scene = other.scene ?? null;
@@ -249,6 +286,7 @@ export function createStore(config) {
       for (const [id, patch] of Object.entries(update.sensors || {})) {
         if (!state.sensors[id] || JSON.stringify(state.sensors[id]) === JSON.stringify(patch)) continue;
         Object.assign(state.sensors[id], patch);
+        recordSensorReading(id, state.sensors[id]);
         any = true;
       }
       for (const [id, f] of Object.entries(update.features || {})) {
@@ -258,6 +296,11 @@ export function createStore(config) {
       }
       if (any) emit({ type: 'bulk', remote: true });
     },
+
+    sensorCfg,
+    sensorHistory(id) {
+      return (sensorHistory[id] || []).slice();
+    },
   };
 
   // Without real sensors the room temperature is simulated: it drifts towards the
@@ -265,8 +308,8 @@ export function createStore(config) {
   setInterval(() => {
     let any = false;
     for (const [id, a] of Object.entries(state.acs)) {
-      const cfg = acCfg.get(id);
-      if (cfg.tuya?.sensorId || cfg.sensor?.id || cfg.link?.id) continue; // a real sensor or unit reports this room
+      const hasRoomSensor = config.sensors?.some((s) => s.room === cfg.room && Number.isFinite(state.sensors[s.id]?.temperature));
+      if (cfg.tuya?.sensorId || cfg.sensor?.id || cfg.link?.id || hasRoomSensor) continue; // a real sensor or unit reports this room
       const ambient = Math.min(config.outdoorTemp - 2, 27);
       const goal = a.on && a.mode !== 'fan' ? a.target : ambient;
       const step = a.on ? 0.2 : 0.1;

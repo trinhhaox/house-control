@@ -39,6 +39,18 @@ export function widgetSnapshot(config, store, plan) {
         swing: s.swing, sleep: s.sleep, eco: s.eco, service: linkOf(a)?.service || null, links: links(a),
       };
     }),
+    sensors: (config.sensors || []).map((s) => {
+      const stateSensor = state.sensors[s.id] || {};
+      return {
+        id: s.id, name: s.name, room: s.room,
+        temperature: stateSensor.temperature != null ? round(stateSensor.temperature, 1) : null,
+        humidity: stateSensor.humidity != null ? round(stateSensor.humidity, 0) : null,
+        battery: stateSensor.battery != null ? round(stateSensor.battery, 0) : null,
+        online: stateSensor.online !== false,
+        service: linkOf(s)?.service || null,
+        links: links(s),
+      };
+    }),
     furniture: config.furniture.filter((f) => Array.isArray(f.pos)).map((f) => {
       const [w, d] = footprint(f);
       return { type: f.type, x: f.pos[0], z: f.pos[1], w, d, rot: f.rot || 0, color: f.color || null };

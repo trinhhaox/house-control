@@ -53,6 +53,31 @@ public struct HomeSnapshot: Codable, Equatable, Sendable {
         public var links: [String: JSONValue]?
     }
 
+    public struct Sensor: Codable, Equatable, Sendable, Identifiable {
+        public var id: String
+        public var name: String
+        public var room: String
+        public var temperature: Double?
+        public var humidity: Double?
+        public var battery: Double?
+        public var online: Bool?
+        public var service: String?
+        public var links: [String: JSONValue]?
+
+        public init(id: String, name: String, room: String, temperature: Double? = nil, humidity: Double? = nil,
+                    battery: Double? = nil, online: Bool? = true, service: String? = nil, links: [String: JSONValue]? = nil) {
+            self.id = id
+            self.name = name
+            self.room = room
+            self.temperature = temperature
+            self.humidity = humidity
+            self.battery = battery
+            self.online = online
+            self.service = service
+            self.links = links
+        }
+    }
+
     public struct Scene: Codable, Equatable, Sendable, Identifiable {
         public var id: String
         public var name: String
@@ -79,6 +104,7 @@ public struct HomeSnapshot: Codable, Equatable, Sendable {
     public var rooms: [Room]
     public var lights: [Light]
     public var acs: [AC]
+    public var sensors: [Sensor]?
     public var furniture: [Furniture]?
     public var scenes: [Scene]
     /// The scene the home is in, until something is changed by hand.
@@ -87,13 +113,14 @@ public struct HomeSnapshot: Codable, Equatable, Sendable {
     public var updated: Double
 
     public init(name: String, plan: String, outdoorTemp: Double? = nil, rooms: [Room], lights: [Light], acs: [AC],
-                scenes: [Scene], scene: String? = nil, updated: Double = Date().timeIntervalSince1970) {
+                sensors: [Sensor]? = nil, scenes: [Scene], scene: String? = nil, updated: Double = Date().timeIntervalSince1970) {
         self.name = name
         self.plan = plan
         self.outdoorTemp = outdoorTemp
         self.rooms = rooms
         self.lights = lights
         self.acs = acs
+        self.sensors = sensors
         self.scenes = scenes
         self.scene = scene
         self.updated = updated
@@ -109,7 +136,9 @@ public struct HomeSnapshot: Codable, Equatable, Sendable {
     public func room(_ id: String) -> Room? { rooms.first { $0.id == id } }
     public func light(_ id: String) -> Light? { lights.first { $0.id == id } }
     public func ac(_ id: String) -> AC? { acs.first { $0.id == id } }
+    public func sensor(_ id: String) -> Sensor? { sensors?.first { $0.id == id } }
     public func lights(in room: String) -> [Light] { lights.filter { $0.room == room } }
+    public func sensors(in room: String) -> [Sensor] { sensors?.filter { $0.room == room } ?? [] }
 
     /// The plan fragment `DeviceHub.setLinks` reads: each device with its links.
     public var linksPlan: [String: Any] {

@@ -239,14 +239,20 @@ export function createPanel(root, config, store, { onFocus, onMenu }) {
   function sensorTile(cfg) {
     const sub = h('div.tile-sub');
     const value = h('div.sensor-value', '—');
-    const el = h('div.tile.sensor', { role: 'group', 'aria-label': cfg.name },
+    const el = h('div.tile.sensor', { role: 'button', tabindex: 0, 'aria-label': cfg.name, onclick: () => openSheet({ kind: 'sensor', id: cfg.id }) },
       h('div.bubble', icon('thermo', 19)),
       h('div.tile-text', h('div.tile-name', cfg.name), sub),
       value);
+    el.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter' || ev.key === ' ') {
+        ev.preventDefault();
+        openSheet({ kind: 'sensor', id: cfg.id });
+      }
+    });
     return {
       el, cfg, kind: 'sensor',
       update() {
-        const s = state.sensors[cfg.id];
+        const s = state.sensors[cfg.id] || {};
         const ready = Number.isFinite(s.temperature);
         const online = s.online !== false;
         el.classList.toggle('on', ready && online);
@@ -301,7 +307,7 @@ export function createPanel(root, config, store, { onFocus, onMenu }) {
 
   function openSheet(target) {
     ui.sheet = target;
-    sheetView = target.kind === 'ac' ? acSheet(target.id) : lightSheet(target.id);
+    sheetView = target.kind === 'ac' ? acSheet(target.id) : target.kind === 'sensor' ? sensorSheet(target.id) : lightSheet(target.id);
     sheet.replaceChildren(...sheetView.nodes);
     panel.classList.add('hidden');
     sheet.classList.remove('hidden');
@@ -309,7 +315,7 @@ export function createPanel(root, config, store, { onFocus, onMenu }) {
     sheet.inert = false;
     card.classList.add('detail');
     hideTooltip();
-    onFocus(target.kind === 'ac' ? target : { kind: 'room', id: store.lightCfg.get(target.id).room });
+    onFocus(target.kind === 'ac' ? target : target.kind === 'sensor' ? { kind: 'room', id: store.sensorCfg?.get(target.id)?.room || target.id } : { kind: 'room', id: store.lightCfg.get(target.id).room });
     update();
   }
 
@@ -490,6 +496,187 @@ export function createPanel(root, config, store, { onFocus, onMenu }) {
         swatches.forEach((el, i) => el.classList.toggle('selected', l.color?.toLowerCase() === SWATCHES[i]));
         pad?.set(l.color);
         if (colorLabel) colorLabel.textContent = l.color ? l.color.toUpperCase() : 'White';
+      },
+    };
+  }
+
+  function sensorSheet(id) {
+    const cfg = (config.sensors || []).find((s) => s.id === id);
+    const s = () => state.sensors[id] || {};
+    const sub = h('div.sheet-sub');
+    const big = bigNumber('°C');
+
+    const comfortBadge = h('div.comfort-badge', '—');
+
+    const humVal = h('span.metric-num', '—');
+    const humStatus = h('span.metric-sub', 'Humidity');
+    const humBar = h('div.metric-bar-fill');
+    const humCard = h('div.metric-card',
+      h('div.metric-head', h('span.metric-icon', icon('droplet', 16)), h('span.metric-title', 'Humidity')),
+      h('div.metric-val-row', humVal),
+      h('div.metric-bar-track', humBar),
+      humStatus);
+
+    const batVal = h('span.metric-num', '—');
+    const batStatus = h('span.metric-sub', 'Battery');
+    const batCard = h('div.metric-card',
+      h('div.metric-head', h('span.metric-icon', icon('battery', 16)), h('span.metric-title', 'Power & Battery')),
+      h('div.metric-val-row', batVal),
+      batStatus);
+
+    const chartPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    chartPath.setAttribute('class', 'chart-line');
+    const chartFill = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    chartFill.setAttribute('class', 'chart-area');
+    const chartSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    chartSvg.setAttribute('viewBox', '0 0 280 60');
+    chartSvg.setAttribute('class', 'sensor-chart-svg');
+    chartSvg.append(chartFill, chartPath);
+
+    const minLabel = h('span.chart-min', 'Min: —');
+    const maxLabel = h('span.chart-max', 'Max: —');
+    const chartSection = h('div.sensor-trend-card',
+      h('div.trend-head', h('span', '24h Temperature Trend'), h('div.trend-range', minLabel, maxLabel)),
+      chartSvg);
+
+    const relatedAC = config.acs.find((a) => a.room === cfg.room);
+    let acSection = null;
+    if (relatedAC) {
+      const acSub = h('div.tile-sub');
+      const acPowerBtn = h('button.round.mini-power', { 'aria-label': 'AC Power', onclick: (e) => {
+        e.stopPropagation();
+        haptic('medium');
+        store.setAC(relatedAC.id, { on: !state.acs[relatedAC.id].on });
+      }}, icon('power', 16));
+      const acTileEl = h('div.tile.ac-link', { onclick: () => openSheet({ kind: 'ac', id: relatedAC.id }) },
+        h('div.bubble', icon('ac', 19)),
+        h('div.tile-text', h('div.tile-name', `${relatedAC.name}`), acSub),
+        acPowerBtn);
+      const quickCoolBtn = h('button.quick-climate-btn', {
+        onclick: (e) => {
+          e.stopPropagation();
+          haptic('medium');
+          store.setAC(relatedAC.id, { on: true, mode: 'cool', target: 24 });
+        }
+      }, icon('cool', 15), 'Cool 24°');
+
+      const quickEcoBtn = h('button.quick-climate-btn', {
+        onclick: (e) => {
+          e.stopPropagation();
+          haptic('medium');
+          const cur = state.acs[relatedAC.id];
+          if (!cur.on) {
+            store.setAC(relatedAC.id, { on: true, mode: 'cool', target: 26, eco: true });
+          } else {
+            store.setAC(relatedAC.id, { target: 26, eco: true });
+          }
+        }
+      }, icon('fan', 15), 'Eco 26°');
+
+      const quickRow = h('div.ac-quick-row', quickCoolBtn, quickEcoBtn);
+
+      acSection = h('div.related-ac-wrap', h('div.field-label', h('span', 'Room Air Conditioner')), acTileEl, quickRow);
+    }
+
+    const nodes = [
+      sheetHead(cfg.name, sub, h('div.round.fake', icon('thermo', 19))),
+      big.el,
+      comfortBadge,
+      h('div.metrics-row', humCard, batCard),
+      chartSection,
+    ];
+    if (acSection) nodes.push(acSection);
+
+    function updateChart() {
+      const hist = store.sensorHistory ? store.sensorHistory(id) : [];
+      const current = s().temperature;
+      const points = [...hist.map((p) => p.temp)];
+      if (Number.isFinite(current)) points.push(current);
+      if (points.length < 2) {
+        chartSvg.style.display = 'none';
+        minLabel.textContent = Number.isFinite(current) ? `Current: ${current.toFixed(1)}°` : '';
+        maxLabel.textContent = '';
+        return;
+      }
+      chartSvg.style.display = 'block';
+      const min = Math.min(...points);
+      const max = Math.max(...points);
+      minLabel.textContent = `Min ${min.toFixed(1)}°`;
+      maxLabel.textContent = `Max ${max.toFixed(1)}°`;
+      const range = Math.max(max - min, 0.8);
+      const w = 280;
+      const h_svg = 50;
+      const step = w / (points.length - 1);
+      const coords = points.map((p, idx) => {
+        const x = idx * step;
+        const y = h_svg - ((p - min) / range) * (h_svg - 14) - 7;
+        return [x, y];
+      });
+      const d = coords.map((pt, idx) => `${idx === 0 ? 'M' : 'L'} ${pt[0].toFixed(1)} ${pt[1].toFixed(1)}`).join(' ');
+      chartPath.setAttribute('d', d);
+      chartFill.setAttribute('d', `${d} L ${w} ${h_svg + 15} L 0 ${h_svg + 15} Z`);
+    }
+
+    return {
+      nodes,
+      update() {
+        const data = s();
+        const ready = Number.isFinite(data.temperature);
+        const online = data.online !== false;
+        sub.replaceChildren(roomName.get(cfg.room), ' · ', h('b', online ? (ready ? 'Live Reading' : 'Waiting for reading') : 'Offline'));
+        big.set(ready ? data.temperature.toFixed(1) : '—', !online || !ready);
+
+        if (ready) {
+          const t = data.temperature;
+          if (t < 20) {
+            comfortBadge.textContent = 'Cool & Crisp';
+            comfortBadge.className = 'comfort-badge cool';
+          } else if (t <= 25.5) {
+            comfortBadge.textContent = 'Ideal Comfort Range';
+            comfortBadge.className = 'comfort-badge ideal';
+          } else if (t <= 28.5) {
+            comfortBadge.textContent = 'Warm';
+            comfortBadge.className = 'comfort-badge warm';
+          } else {
+            comfortBadge.textContent = 'Hot';
+            comfortBadge.className = 'comfort-badge hot';
+          }
+        } else {
+          comfortBadge.textContent = 'No reading';
+          comfortBadge.className = 'comfort-badge';
+        }
+
+        if (Number.isFinite(data.humidity)) {
+          const h_val = Math.round(data.humidity);
+          humVal.textContent = `${h_val}%`;
+          humBar.style.width = `${Math.min(100, Math.max(0, h_val))}%`;
+          humStatus.textContent = h_val < 35 ? 'Dry air' : h_val <= 65 ? 'Comfortable (Ideal)' : 'High humidity';
+        } else {
+          humVal.textContent = '—';
+          humBar.style.width = '0%';
+          humStatus.textContent = 'No sensor reported';
+        }
+
+        if (Number.isFinite(data.battery)) {
+          const b_val = Math.round(data.battery);
+          batVal.textContent = `${b_val}%`;
+          batStatus.textContent = b_val < 20 ? 'Low battery' : 'Healthy charge';
+        } else {
+          batVal.textContent = 'Mains';
+          batStatus.textContent = 'Continuous power';
+        }
+
+        updateChart();
+
+        if (relatedAC) {
+          const a = state.acs[relatedAC.id];
+          const acTileEl = acSection.querySelector('.tile.ac-link');
+          acTileEl?.classList.toggle('on', a.on);
+          const pBtn = acSection.querySelector('.mini-power');
+          pBtn?.classList.toggle('on', a.on);
+          const acSubEl = acSection.querySelector('.tile-sub');
+          if (acSubEl) acSubEl.textContent = `${a.on ? MODE_LABEL[a.mode] : 'Off'} · Set to ${a.target}°C`;
+        }
       },
     };
   }

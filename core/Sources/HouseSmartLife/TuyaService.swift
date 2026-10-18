@@ -336,8 +336,8 @@ enum TuyaMapper {
             guard let code = dp["code"] as? String, let value = dp["value"] else { continue }
             switch code {
             case "switch", "power": if let v = value as? Bool { out["on"] = v }
-            case "temp_set": if let v = value as? Double { out["target"] = v }
-            case "temp_current": if let v = value as? Double { out["roomTemp"] = v }
+            case "temp_set": if let v = (value as? NSNumber)?.doubleValue ?? (value as? Double) { out["target"] = v }
+            case "temp_current": if let v = (value as? NSNumber)?.doubleValue ?? (value as? Double) { out["roomTemp"] = v }
             case "mode": if let v = value as? String, let m = acModes.first(where: { $0.value == v })?.key { out["mode"] = m }
             case "fan_speed_enum", "windspeed": if let v = value as? String, let f = acFans.first(where: { $0.value == v })?.key { out["fan"] = f }
             default: break
@@ -350,7 +350,7 @@ enum TuyaMapper {
     static func sensorTemperature(from status: [[String: Any]]) -> Double? {
         for dp in status {
             guard let code = dp["code"] as? String, ["temp_current", "va_temperature"].contains(code),
-                  let v = dp["value"] as? Double else { continue }
+                  let v = (dp["value"] as? NSNumber)?.doubleValue ?? (dp["value"] as? Double) else { continue }
             return abs(v) > 60 ? v / 10 : v
         }
         return nil

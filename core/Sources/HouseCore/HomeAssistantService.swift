@@ -255,8 +255,16 @@ public final class HomeAssistantService: DeviceService {
                 "swing": swings.contains("off") && swings.count > 1,
                 "sleep": presets.contains("sleep"), "eco": presets.contains("eco"),
             ]
-        } else if id.hasPrefix("sensor."), let t = Double(value) {
-            reading.temperature = (attributes["unit_of_measurement"] as? String) == "°F" ? (t - 32) * 5 / 9 : t
+        } else if id.hasPrefix("sensor.") {
+            if let t = Double(value) {
+                reading.temperature = (attributes["unit_of_measurement"] as? String) == "°F" ? (t - 32) * 5 / 9 : t
+            }
+            if let h = attributes.double("humidity") ?? attributes.double("relative_humidity") {
+                reading.humidity = max(0, min(100, h))
+            }
+            if let b = attributes.double("battery") ?? attributes.double("battery_level") {
+                reading.battery = max(0, min(100, b))
+            }
         }
         return reading
     }

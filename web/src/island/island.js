@@ -100,6 +100,35 @@ export async function bootIsland(root) {
     });
   }
 
+  for (const cfg of config.sensors || []) {
+    const sub = h('div.chip-sub');
+    const value = h('span.chip-value', '—');
+    const bubble = h('span.chip-bubble', icon('thermo', 15));
+    const el = h('div.chip.sensor', { role: 'group', 'aria-label': cfg.name, onclick: () => {
+      world?.focus({ kind: 'room', id: cfg.room });
+    }},
+      bubble,
+      h('div.chip-text', h('div.chip-name', cfg.name), sub),
+      value);
+    list.append(el);
+    rows.push(() => {
+      const s = state.sensors[cfg.id] || {};
+      const ready = Number.isFinite(s.temperature);
+      const online = s.online !== false;
+      el.classList.toggle('on', ready && online);
+      el.classList.toggle('offline', !online);
+      el.style.setProperty('--c', '#5ec8ff');
+      value.textContent = ready ? `${s.temperature.toFixed(1)}°` : '—';
+      const details = [];
+      if (!online) details.push('Offline');
+      else if (!ready) details.push('Waiting for reading');
+      if (Number.isFinite(s.humidity)) details.push(`${Math.round(s.humidity)}%`);
+      if (Number.isFinite(s.battery)) details.push(`${Math.round(s.battery)}% bat`);
+      details.push(roomName.get(cfg.room));
+      sub.textContent = details.join(' · ');
+    });
+  }
+
   for (const cfg of config.lights) {
     const dimmable = cfg.capabilities.includes('brightness');
     const sub = h('div.chip-sub');

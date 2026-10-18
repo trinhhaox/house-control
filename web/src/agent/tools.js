@@ -46,6 +46,16 @@ export function createAgent({ store, config, raw, render, onAction }) {
     return `on, ${s.mode}, target ${s.target}°C, fan ${s.fan} (${room})`;
   }
 
+  function sensorState(cfg, s = state.sensors[cfg.id]) {
+    if (!s) return 'unknown';
+    if (s.online === false) return 'offline';
+    const parts = [];
+    if (Number.isFinite(s.temperature)) parts.push(`${s.temperature.toFixed(1)}°C`);
+    if (Number.isFinite(s.humidity)) parts.push(`${Math.round(s.humidity)}% humidity`);
+    if (Number.isFinite(s.battery)) parts.push(`${Math.round(s.battery)}% battery`);
+    return parts.length ? parts.join(', ') : 'waiting for reading';
+  }
+
   const lightJSON = (cfg) => ({
     id: cfg.id, name: cfg.name, room: cfg.room, type: cfg.type, abilities: cfg.capabilities,
     real: isLinked(cfg), ...state.lights[cfg.id],
@@ -57,20 +67,33 @@ export function createAgent({ store, config, raw, render, onAction }) {
     on: state.acs[cfg.id].on, target: state.acs[cfg.id].target, mode: state.acs[cfg.id].mode,
     fan: state.acs[cfg.id].fan, roomTemp: state.acs[cfg.id].roomTemp,
   });
+  const sensorJSON = (cfg) => {
+    const s = state.sensors[cfg.id] || {};
+    return {
+      id: cfg.id, name: cfg.name, room: cfg.room, real: isLinked(cfg),
+      temperature: s.temperature ?? null,
+      humidity: s.humidity ?? null,
+      battery: s.battery ?? null,
+      online: s.online ?? true,
+    };
+  };
 
   function overview() {
     const lightsOn = config.lights.filter((l) => state.lights[l.id].on).length;
     const acsOn = config.acs.filter((a) => state.acs[a.id].on).length;
     const scene = config.scenes.find((s) => s.id === state.scene);
+    const sensorCount = (config.sensors || []).length;
     const lines = [
       `Home "${config.name}": ${config.rooms.length} rooms, ${config.lights.length} lights (${lightsOn} on), `
-      + `${config.acs.length} air conditioners (${acsOn} running).${scene ? ` Active scene: ${scene.name}.` : ''}`,
+      + `${config.acs.length} air conditioners (${acsOn} running)${sensorCount ? `, ${sensorCount} room sensors` : ''}.${scene ? ` Active scene: ${scene.name}.` : ''}`,
     ];
     for (const room of config.rooms) {
       const lights = config.lights.filter((l) => l.room === room.id);
       const acs = config.acs.filter((a) => a.room === room.id);
-      if (!lights.length && !acs.length) { lines.push('', `${room.name} [${room.id}] — no devices`); continue; }
+      const sensors = (config.sensors || []).filter((s) => s.room === room.id);
+      if (!lights.length && !acs.length && !sensors.length) { lines.push('', `${room.name} [${room.id}] — no devices`); continue; }
       lines.push('', `${room.name} [${room.id}]`);
+      for (const s of sensors) lines.push(`  • ${s.name} [${s.id}] — room sensor: ${sensorState(s)}`);
       for (const l of lights) lines.push(`  • ${l.name} [${l.id}] — light (${l.type}; ${lightAbilities(l)}): ${lightState(l)}`);
       for (const a of acs) lines.push(`  • ${a.name} [${a.id}] — air conditioner (${a.min}–${a.max}°C): ${acState(a)}`);
     }
@@ -86,6 +109,7 @@ export function createAgent({ store, config, raw, render, onAction }) {
       scene: state.scene,
       rooms: config.rooms.map((r) => ({
         id: r.id, name: r.name,
+        sensors: (config.sensors || []).filter((s) => s.room === r.id).map(sensorJSON),
         lights: config.lights.filter((l) => l.room === r.id).map(lightJSON),
         acs: config.acs.filter((a) => a.room === r.id).map(acJSON),
       })),

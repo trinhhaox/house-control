@@ -217,6 +217,18 @@ html.mode-island #app { display: block; padding: 0; height: 100%; }
   transition: var(--own);
 }
 .chip.ac { grid-column: 1 / -1; gap: 6px; }
+.chip.sensor { grid-column: 1 / -1; cursor: pointer; }
+.chip.sensor .chip-bubble { color: #8bd8ff; }
+.chip.sensor.on .chip-bubble { color: #06162c; }
+.chip.sensor.offline { opacity: 0.62; }
+.chip.sensor .chip-value {
+  flex: none;
+  font-size: 14.5px;
+  font-weight: 650;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  margin-right: 4px;
+}
 @media (hover: hover) { .chip.light:hover { background: rgba(255, 255, 255, 0.12); } }
 .chip.pressed { transform: scale(0.96); }
 .chip.dimmable { cursor: ew-resize; }
