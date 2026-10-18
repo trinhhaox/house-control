@@ -248,6 +248,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 "notes": update.notes
             ]
         }
+        boot["islandShown"] = island?.isShown == true || (island == nil && islandEnabled)
         // HOUSE_OPEN_DEVICE=<id> starts the panel on that light's or AC's detail sheet.
         if let device = ProcessInfo.processInfo.environment["HOUSE_OPEN_DEVICE"] { boot["openDevice"] = device }
         return boot
@@ -499,6 +500,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case "openEditor": openEditor()
         case "checkUpdates": checkForUpdatesManual()
         case "downloadUpdate": showAvailableUpdate()
+        case "toggleIsland": toggleIsland()
         case "openUpdate":
             if let url = availableUpdate?.releaseURL ?? AppUpdater.releasesURL as URL? {
                 NSWorkspace.shared.open(url)
@@ -678,12 +680,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             island = controller
         }
         island?.show()
+        panel.host.call("islandVisibility", ["shown": true])
     }
 
     @objc private func toggleIsland() {
         let show = island?.isShown != true
         UserDefaults.standard.set(show, forKey: "island")
-        if show { showIsland() } else { island?.hide() }
+        if show {
+            showIsland()
+        } else {
+            island?.hide()
+            panel.host.call("islandVisibility", ["shown": false])
+        }
     }
 
     // MARK: - iPhone sync

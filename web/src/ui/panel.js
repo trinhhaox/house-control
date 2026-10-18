@@ -44,6 +44,14 @@ export function createPanel(root, config, store, { onFocus, onMenu }) {
   const homeSub = h('div.home-sub');
   const power = h('button.round.power', { title: 'Everything on / off', 'aria-label': 'Toggle everything', onclick: toggleEverything }, icon('power', 21, 2.2));
   const gear = h('button.round', { title: 'Floor plan', 'aria-label': 'Floor plan menu', onclick: () => onMenu(gear) }, icon('settings', 17));
+  const isIslandInitial = () => window.__HOUSE_BOOT__?.islandShown !== false;
+  let currentIslandShown = isIslandInitial();
+  const islandBtn = isPhone ? null : h('button.round.island-btn', {
+    title: currentIslandShown ? 'Notch Island is On — Click to turn off' : 'Notch Island is Off — Click to turn on',
+    'aria-label': 'Toggle Notch Island',
+    onclick: () => post('toggleIsland'),
+  }, icon('island', 18));
+  if (islandBtn && currentIslandShown) islandBtn.classList.add('on');
   const quit = isPhone ? null : h('button.round.quit', { title: 'Quit House Control', 'aria-label': 'Quit House Control', onclick: () => post('quit') }, icon('close', 17, 2.2));
   // Shown while an AI assistant has a link to this home (AI Access on the Mac).
   const aiBadge = h('button.ai-badge', { hidden: true, title: 'An AI assistant has access — click to manage', 'aria-label': 'AI access',
@@ -76,7 +84,7 @@ export function createPanel(root, config, store, { onFocus, onMenu }) {
     h('header.top',
       h('div.home', h('div.home-badge', icon('home', 17)),
         h('div', h('div.home-name', config.name), homeSub)),
-      updateBadge, aiBadge, gear, power, quit),
+      updateBadge, aiBadge, islandBtn, gear, power, quit),
     tooltip, panel, sheet, toastEl);
   const card = h('div.card.booting', h('div.notch'), clip);
   root.replaceChildren(card);
@@ -790,6 +798,15 @@ export function createPanel(root, config, store, { onFocus, onMenu }) {
     get room() { return ui.room; },
     setNotch(x) { card.style.setProperty('--notch-x', `${x}px`); },
     setAgentLive(live) { aiBadge.hidden = !live; },
+    setIslandShown(shown) {
+      currentIslandShown = !!shown;
+      if (window.__HOUSE_BOOT__) window.__HOUSE_BOOT__.islandShown = currentIslandShown;
+      if (islandBtn) {
+        islandBtn.classList.toggle('on', currentIslandShown);
+        islandBtn.classList.toggle('off', !currentIslandShown);
+        islandBtn.title = currentIslandShown ? 'Notch Island is On — Click to turn off' : 'Notch Island is Off — Click to turn on';
+      }
+    },
     setUpdate(info) {
       if (info && info.available) {
         updateBadge.hidden = false;

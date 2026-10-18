@@ -203,6 +203,17 @@ html.native .card { width: auto; height: auto; box-shadow:
 @media (hover: hover) {
   .round:hover { background: rgba(255, 255, 255, 0.16); color: var(--text); }
   .round.quit:hover { background: rgba(239, 68, 68, 0.22); color: #f87171; border-color: rgba(239, 68, 68, 0.4); }
+  .round.island-btn:hover { background: rgba(56, 189, 248, 0.22); color: #fff; border-color: rgba(56, 189, 248, 0.45); }
+}
+.round.island-btn.on {
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.4);
+  background: rgba(56, 189, 248, 0.14);
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.22);
+}
+.round.island-btn.off {
+  color: rgba(255, 255, 255, 0.28);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 .round:active { transform: scale(0.9); }
 

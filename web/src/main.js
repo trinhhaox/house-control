@@ -143,6 +143,7 @@ async function boot() {
   };
   incoming.agentLive = (live) => panel.setAgentLive(Boolean(live));
   panel.setAgentLive(Boolean(window.__HOUSE_BOOT__?.agentLive));
+  incoming.islandVisibility = (payload) => panel.setIslandShown(Boolean(payload?.shown));
   incoming.updateAvailable = (update) => panel.setUpdate(update);
   if (window.__HOUSE_BOOT__?.update) panel.setUpdate(window.__HOUSE_BOOT__.update);
 
@@ -176,7 +177,13 @@ async function boot() {
       });
     }
     if (isNative) {
+      const isIslandOn = window.__HOUSE_BOOT__?.islandShown !== false;
       items.push('-',
+        {
+          label: isIslandOn ? 'Hide Notch Island' : 'Show Notch Island',
+          icon: icon(isIslandOn ? 'eyeOff' : 'island', 16),
+          action: () => post('toggleIsland'),
+        },
         { label: 'Edit home…', action: () => post('openEditor') },
         { label: 'AI access…', action: () => post('openAgent') },
         { label: 'Load floor plan…', action: () => post('loadPlan') },
