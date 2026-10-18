@@ -9,7 +9,7 @@ public struct PlanEditor {
 
     public init(plan: [String: Any]) { self.plan = plan }
 
-    /// A lamp or an AC of the plan, for lists.
+    /// A lamp, AC or room sensor of the plan, for lists.
     public struct Item: Identifiable, Equatable {
         public let id: String
         public let kind: DeviceKind
@@ -50,7 +50,7 @@ public struct PlanEditor {
     public var items: [Item] {
         let names = Dictionary(rooms.map { ($0.id, $0.name) }, uniquingKeysWith: { a, _ in a })
         var out: [Item] = []
-        for (kind, key) in [(DeviceKind.light, "lights"), (.ac, "acs")] {
+        for (kind, key) in [(DeviceKind.light, "lights"), (.ac, "acs"), (.sensor, "sensors")] {
             for device in plan[key] as? [[String: Any]] ?? [] {
                 guard let id = device["id"] as? String else { continue }
                 let room = device["room"] as? String ?? ""
@@ -97,7 +97,7 @@ public struct PlanEditor {
     // MARK: - Linking
 
     private func index(of id: String) -> (key: String, index: Int)? {
-        for key in ["lights", "acs"] {
+        for key in ["lights", "acs", "sensors"] {
             if let i = (plan[key] as? [[String: Any]] ?? []).firstIndex(where: { $0["id"] as? String == id }) { return (key, i) }
         }
         return nil
@@ -161,7 +161,7 @@ public struct PlanEditor {
 
     private var allIds: Set<String> {
         var ids = Set<String>()
-        for key in ["rooms", "lights", "acs", "scenes"] {
+        for key in ["rooms", "lights", "acs", "sensors", "scenes"] {
             for entry in plan[key] as? [[String: Any]] ?? [] { if let id = entry["id"] as? String { ids.insert(id) } }
         }
         return ids
@@ -193,8 +193,8 @@ public struct PlanEditor {
         return "ceiling"
     }
 
-    /// Adds real devices (as `DeviceHub.allDevices` lists them) to `room` as linked lamps
-    /// and ACs, spread over the room so none stands on another. Sensors are skipped.
+    /// Adds real devices (as `DeviceHub.allDevices` lists them) to `room` as linked lamps,
+    /// ACs and room sensors. Physical devices are spread over the room so none overlaps.
     /// Returns the ids of the new items.
     @discardableResult
     public mutating func add(_ devices: [[String: Any]], to room: String) -> [String] {
@@ -203,8 +203,10 @@ public struct PlanEditor {
         var taken = allIds
         var lights = plan["lights"] as? [[String: Any]] ?? []
         var acs = plan["acs"] as? [[String: Any]] ?? []
+        var sensors = plan["sensors"] as? [[String: Any]] ?? []
         let newLights = devices.filter { ($0["kind"] as? String) == "light" }
         let newACs = devices.filter { ($0["kind"] as? String) == "ac" }
+        let newSensors = devices.filter { ($0["kind"] as? String) == "sensor" }
         var added: [String] = []
 
         // Lamps on a grid inside the room, away from the lamps already there.
@@ -252,10 +254,18 @@ public struct PlanEditor {
             acs.append(ac)
             added.append(id)
         }
+        for device in newSensors {
+            let id = uniqueId("\(room).sensor", taken: taken)
+            taken.insert(id)
+            sensors.append(["id": id, "name": device["name"] as? String ?? "Room sensor", "room": room,
+                            "capabilities": device["capabilities"] as? [String] ?? ["temperature"]])
+            added.append(id)
+        }
         plan["lights"] = lights
         plan["acs"] = acs
+        plan["sensors"] = sensors
         // Link each new item to its device.
-        for (id, device) in zip(added, newLights + newACs) { link(id, to: device) }
+        for (id, device) in zip(added, newLights + newACs + newSensors) { link(id, to: device) }
         return added
     }
 
@@ -312,6 +322,7 @@ public struct PlanEditor {
             "furniture": [[String: Any]](),
             "lights": [[String: Any]](),
             "acs": [[String: Any]](),
+            "sensors": [[String: Any]](),
             "scenes": [
                 ["id": "bright", "name": "Bright", "icon": "sun", "lights": ["*": ["on": true, "brightness": 1]]],
                 ["id": "off", "name": "All off", "icon": "moon", "lights": ["*": ["on": false]], "acs": ["*": ["on": false]]],

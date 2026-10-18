@@ -86,7 +86,7 @@ public final class DeviceHub {
         tuyaSensors = [:]
         defer { watchLinks() }
         guard let plan else { return }
-        for (kind, key) in [("light", "lights"), ("ac", "acs")] {
+        for (kind, key) in [("light", "lights"), ("ac", "acs"), ("sensor", "sensors")] {
             for device in plan[key] as? [[String: Any]] ?? [] {
                 guard let id = device["id"] as? String else { continue }
                 let sensor = Self.sensorLink(device["sensor"])
@@ -190,7 +190,7 @@ public final class DeviceHub {
         let (fromTuya, fromServices) = await (tuyaPart, servicePart)
         guard fromTuya != nil || fromServices != nil else { return nil }
         var merged: [String: Any] = [:]
-        for key in ["lights", "acs", "features"] {
+        for key in ["lights", "acs", "sensors", "features"] {
             var section = fromTuya?[key] as? [String: Any] ?? [:]
             for (id, value) in fromServices?[key] as? [String: Any] ?? [:] {
                 if var existing = section[id] as? [String: Any], let more = value as? [String: Any] {
@@ -222,7 +222,7 @@ public final class DeviceHub {
             answered = true
         }
         guard answered else { return nil }
-        var lights: [String: Any] = [:], acs: [String: Any] = [:], features: [String: Any] = [:]
+        var lights: [String: Any] = [:], acs: [String: Any] = [:], sensors: [String: Any] = [:], features: [String: Any] = [:]
         for (id, link) in serviceLinks {
             let reading = readings[link.service]?[link.id]
             if link.kind == .light, let light = reading?.light, reading?.online != false { lights[id] = light }
@@ -232,11 +232,18 @@ public final class DeviceHub {
                 if !ac.isEmpty { acs[id] = ac }
                 if let known = reading?.features { features[id] = known }
             }
+            if link.kind == .sensor, let reading {
+                var sensor: [String: Any] = ["online": reading.online]
+                if let value = reading.temperature { sensor["temperature"] = value }
+                if let value = reading.humidity { sensor["humidity"] = value }
+                if let value = reading.battery { sensor["battery"] = value }
+                sensors[id] = sensor
+            }
         }
         for (id, sensor) in tuyaSensors {
             if let t = readings[sensor.service]?[sensor.id]?.temperature { acs[id] = ["roomTemp": t] }
         }
-        return ["lights": lights, "acs": acs, "features": features]
+        return ["lights": lights, "acs": acs, "sensors": sensors, "features": features]
     }
 
     private func pollCloud() async -> [String: Any]? {

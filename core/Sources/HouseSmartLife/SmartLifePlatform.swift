@@ -69,6 +69,7 @@ public final class SmartLifePlatform: LinkedCloud {
         guard let status = try? await cloud.status(of: Array(Set(ids)).filter { !$0.isEmpty }) else { return nil }
         var lights: [String: Any] = [:]
         var acs: [String: Any] = [:]
+        var sensors: [String: Any] = [:]
         var features: [String: Any] = [:]
         for (id, entry) in entries {
             guard let deviceId = entry.link["deviceId"] as? String else { continue }
@@ -82,6 +83,10 @@ public final class SmartLifePlatform: LinkedCloud {
                 }
                 continue
             }
+            if entry.kind == "sensor" {
+                if let dps = status[deviceId] { sensors[id] = TuyaMapper.sensorState(from: dps) }
+                continue
+            }
             var state = status[deviceId].map { TuyaMapper.acState(from: $0) } ?? [:]
             if let sensorId = entry.link["sensorId"] as? String, let dps = status[sensorId],
                let temperature = TuyaMapper.sensorTemperature(from: dps) {
@@ -89,7 +94,7 @@ public final class SmartLifePlatform: LinkedCloud {
             }
             if !state.isEmpty { acs[id] = state }
         }
-        return ["lights": lights, "acs": acs, "features": features]
+        return ["lights": lights, "acs": acs, "sensors": sensors, "features": features]
     }
 
     public func devices() async throws -> [[String: Any]] {
@@ -118,6 +123,11 @@ public final class SmartLifePlatform: LinkedCloud {
         if codes.contains("bright_value") || codes.contains("bright_value_v2") { caps.append("brightness") }
         if codes.contains("temp_value") || codes.contains("temp_value_v2") { caps.append("temp") }
         if codes.contains("colour_data") || codes.contains("colour_data_v2") { caps.append("color") }
+        if kind == .sensor {
+            if codes.contains("temp_current") || codes.contains("va_temperature") { caps.append("temperature") }
+            if codes.contains("va_humidity") || codes.contains("humidity_value") || codes.contains("humidity_current") { caps.append("humidity") }
+            if codes.contains("battery_percentage") || codes.contains("battery_value") || codes.contains("battery") { caps.append("battery") }
+        }
         var out = d
         out["service"] = "smartlife"
         out["kind"] = kind.rawValue

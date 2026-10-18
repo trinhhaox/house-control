@@ -356,6 +356,24 @@ enum TuyaMapper {
         return nil
     }
 
+    /// Standalone room-sensor state in the panel's units.
+    static func sensorState(from status: [[String: Any]]) -> [String: Any] {
+        var out: [String: Any] = [:]
+        if let temperature = sensorTemperature(from: status) { out["temperature"] = temperature }
+        for dp in status {
+            guard let code = dp["code"] as? String, let v = (dp["value"] as? NSNumber)?.doubleValue else { continue }
+            switch code {
+            case "va_humidity", "humidity_value", "humidity_current":
+                out["humidity"] = max(0, min(100, v > 100 ? v / 10 : v))
+            case "battery_percentage", "battery_value", "battery":
+                out["battery"] = max(0, min(100, v))
+            default: break
+            }
+        }
+        out["online"] = true
+        return out
+    }
+
     private static func hsv(_ hex: String) -> (Double, Double, Double)? {
         var s = hex.trimmingCharacters(in: .whitespaces)
         if s.hasPrefix("#") { s.removeFirst() }

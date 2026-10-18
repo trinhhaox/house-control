@@ -3,6 +3,17 @@
 What changed in each release of House Control. The Mac app is on
 [Releases](https://github.com/0xProbabillity/house-control/releases); the iPhone app is on TestFlight.
 
+## 1.0.1 — 2026-10-18
+
+### Room sensors
+
+- Temperature and humidity sensors can now be added to a room as independent devices instead of only serving as an
+  air conditioner's thermometer.
+- Sensor tiles show live temperature, humidity, battery level and offline state in the Mac and iPhone control panels.
+- The floor-plan editor and the iPhone Devices screen can add, link and move room sensors while preserving an AC's
+  existing thermometer link.
+- Smart Life sensor readings now include humidity and battery data when the device reports them.
+
 ## 1.0.0 — 2026-10-15
 
 ### Widgets, controls and quick actions

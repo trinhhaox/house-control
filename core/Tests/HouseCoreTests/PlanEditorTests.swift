@@ -7,17 +7,20 @@ final class PlanEditorTests: XCTestCase {
         plan["lights"] = [["id": "living.light", "name": "Ceiling", "room": "living", "type": "ceiling", "pos": [2.5, 2], "capabilities": []]]
         plan["acs"] = [["id": "living.ac", "name": "AC", "room": "living", "wall": "north", "pos": [2.5, 0],
                         "tuya": ["deviceId": "old", "sensorId": "s1"]]]
+        plan["sensors"] = [["id": "living.sensor", "name": "Room sensor", "room": "living",
+                            "capabilities": ["temperature"], "tuya": ["deviceId": "standalone"]]]
         return plan
     }
 
     func testItemsAndLinks() {
         let editor = PlanEditor(plan: sample())
         XCTAssertEqual(editor.rooms.map(\.name), ["Living room"])
-        XCTAssertEqual(editor.items.map(\.id), ["living.light", "living.ac"])
+        XCTAssertEqual(editor.items.map(\.id), ["living.light", "living.ac", "living.sensor"])
         XCTAssertNil(editor.items[0].link)
         XCTAssertEqual(editor.items[1].link, .init(service: "smartlife", id: "old"))
         XCTAssertEqual(editor.items[1].sensor, .init(service: "smartlife", id: "s1"))
         XCTAssertEqual(editor.items[1].roomName, "Living room")
+        XCTAssertEqual(editor.items[2].kind, .sensor)
     }
 
     func testLinkingFollowsTheWebEditorsRules() {
@@ -61,7 +64,7 @@ final class PlanEditorTests: XCTestCase {
             ["service": "homeassistant", "id": "climate.y", "kind": "ac", "name": "Bedroom AC", "min": 16.0, "max": 30.0],
             ["service": "hue", "id": "t", "kind": "sensor", "name": "Motion"],
         ], to: "living")
-        XCTAssertEqual(added, ["living.light2", "living.light3", "living.ac2"])
+        XCTAssertEqual(added, ["living.light2", "living.light3", "living.ac2", "living.sensor2"])
         let lights = editor.plan["lights"] as! [[String: Any]]
         XCTAssertEqual(lights[1]["type"] as? String, "table")
         XCTAssertEqual(lights[2]["type"] as? String, "strip")
@@ -75,6 +78,8 @@ final class PlanEditorTests: XCTestCase {
         XCTAssertEqual(ac["wall"] as? String, "south") // the north wall already has one
         XCTAssertEqual(ac["pos"] as? [Double], [2.5, 4])
         XCTAssertEqual(ac["link"] as? [String: String], ["service": "homeassistant", "id": "climate.y"])
+        let sensor = (editor.plan["sensors"] as! [[String: Any]])[1]
+        XCTAssertEqual(sensor["link"] as? [String: String], ["service": "hue", "id": "t"])
         // Still a plan the stores accept.
         _ = try PlanStore.validate(PlanStore.encode(editor.plan))
     }
@@ -92,7 +97,7 @@ final class PlanEditorTests: XCTestCase {
         plan["scenes"] = [["id": "s", "lights": ["living.light": ["on": true], "*": ["on": false]]]]
         editor = PlanEditor(plan: plan)
         editor.remove("living.light")
-        XCTAssertEqual(editor.items.map(\.id), ["living.ac"])
+        XCTAssertEqual(editor.items.map(\.id), ["living.ac", "living.sensor"])
         let rules = (editor.plan["scenes"] as! [[String: Any]])[0]["lights"] as! [String: Any]
         XCTAssertEqual(Array(rules.keys), ["*"])
     }

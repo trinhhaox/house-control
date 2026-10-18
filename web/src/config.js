@@ -8,7 +8,7 @@ export class ConfigError extends Error {}
 
 export const LIGHT_KINDS = LIGHT_TYPES;
 
-// A lamp or an AC is real when it is linked to a device of a connected platform:
+// A lamp, AC or room sensor is real when it is linked to a device of a connected platform:
 // `link: { service, id }` (Home Assistant, Philips Hue, Apple Home) or, for Smart Life,
 // `tuya: { deviceId }`. An AC's `sensor: { service, id }` is a thermometer for its room.
 export const LINK_FIELDS = ['tuya', 'link', 'sensor'];
@@ -102,6 +102,12 @@ export function normalize(raw) {
     return { ...a, name: a.name || a.id, y: a.y ?? 2.2, min: a.min ?? 16, max: a.max ?? 30 };
   });
 
+  const sensors = (raw.sensors || []).map((s) => {
+    unique(s.id, 'A sensor');
+    need(roomIds.has(s.room), `Sensor "${s.id}" refers to unknown room "${s.room}"`);
+    return { ...s, name: s.name || s.id, capabilities: s.capabilities || ['temperature'] };
+  });
+
   const scenes = (raw.scenes || []).map((s) => {
     need(typeof s.id === 'string' && s.id, 'A scene is missing an "id"');
     return { id: s.id, name: s.name || s.id, icon: s.icon || 'sun', lights: s.lights || {}, acs: s.acs || {} };
@@ -123,6 +129,7 @@ export function normalize(raw) {
     furniture: raw.furniture || [],
     lights,
     acs,
+    sensors,
     scenes,
     bounds: { minX, minZ, maxX, maxZ },
   };

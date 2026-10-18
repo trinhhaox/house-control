@@ -19,14 +19,19 @@ function defaultAC(cfg, outdoor) {
   };
 }
 
+function defaultSensor() {
+  return { temperature: null, humidity: null, battery: null, online: null };
+}
+
 export function createStore(config) {
   const listeners = new Set();
   const lightCfg = new Map(config.lights.map((l) => [l.id, l]));
   const acCfg = new Map(config.acs.map((a) => [a.id, a]));
 
-  const state = { lights: {}, acs: {}, scene: null };
+  const state = { lights: {}, acs: {}, sensors: {}, scene: null };
   for (const l of config.lights) state.lights[l.id] = defaultLight(l);
   for (const a of config.acs) state.acs[a.id] = defaultAC(a, config.outdoorTemp);
+  for (const s of config.sensors) state.sensors[s.id] = defaultSensor();
   // What each real AC can do, as reported by the native side. A simulated AC can do everything.
   const features = {};
 
@@ -59,7 +64,7 @@ export function createStore(config) {
       post('summary', summary());
       // The native shell passes this on to its other views of the same home (the panel
       // and the island each run their own store), which adopt it without re-sending.
-      if (!change.adopted) post('state', { lights: state.lights, acs: state.acs, scene: state.scene, source: change.source ?? store.source ?? null });
+      if (!change.adopted) post('state', { lights: state.lights, acs: state.acs, sensors: state.sensors, scene: state.scene, source: change.source ?? store.source ?? null });
     }
   }
 
@@ -218,7 +223,7 @@ export function createStore(config) {
     },
 
     /** Reports the state again, for a view that has only just started. */
-    share() { post('state', { lights: state.lights, acs: state.acs, scene: state.scene }); },
+    share() { post('state', { lights: state.lights, acs: state.acs, sensors: state.sensors, scene: state.scene }); },
 
     // The state of another view of this home (see emit). Nothing goes to the devices:
     // the view where the change was made has already sent it.
@@ -226,6 +231,11 @@ export function createStore(config) {
       let any = false;
       for (const [id, s] of Object.entries(other.lights || {})) any = writeLight(id, s, { remote: true }) || any;
       for (const [id, s] of Object.entries(other.acs || {})) any = writeAC(id, s, { remote: true }) || any;
+      for (const [id, s] of Object.entries(other.sensors || {})) {
+        if (!state.sensors[id] || JSON.stringify(state.sensors[id]) === JSON.stringify(s)) continue;
+        Object.assign(state.sensors[id], s);
+        any = true;
+      }
       const scene = other.scene ?? null;
       if (scene !== state.scene) { state.scene = scene; any = true; }
       if (any) emit({ type: 'bulk', remote: true, adopted: true, source: other.source || null });
@@ -236,6 +246,11 @@ export function createStore(config) {
       let any = false;
       for (const [id, patch] of Object.entries(update.lights || {})) any = writeLight(id, patch, { remote: true }) || any;
       for (const [id, patch] of Object.entries(update.acs || {})) any = writeAC(id, patch, { remote: true }) || any;
+      for (const [id, patch] of Object.entries(update.sensors || {})) {
+        if (!state.sensors[id] || JSON.stringify(state.sensors[id]) === JSON.stringify(patch)) continue;
+        Object.assign(state.sensors[id], patch);
+        any = true;
+      }
       for (const [id, f] of Object.entries(update.features || {})) {
         if (!state.acs[id] || JSON.stringify(features[id]) === JSON.stringify(f)) continue;
         features[id] = f;

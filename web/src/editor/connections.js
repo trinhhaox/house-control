@@ -396,7 +396,7 @@ export function createConnections({ rerender, toast, usedBy, onOpen }) {
   /** "id → plan item name" for every device the plan links, to mark them in the lists. */
   function usedMap(doc) {
     const out = new Map();
-    for (const d of [...doc.lights, ...doc.acs]) {
+    for (const d of [...doc.lights, ...doc.acs, ...(doc.sensors || [])]) {
       const l = linkOf(d);
       if (l) out.set(`${l.service}|${l.id}`, d.name || d.id);
       if (d.sensor?.id) out.set(`${d.sensor.service}|${d.sensor.id}`, `${d.name || d.id} · room`);

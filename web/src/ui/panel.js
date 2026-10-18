@@ -236,7 +236,36 @@ export function createPanel(root, config, store, { onFocus, onMenu }) {
     };
   }
 
+  function sensorTile(cfg) {
+    const sub = h('div.tile-sub');
+    const value = h('div.sensor-value', '—');
+    const el = h('div.tile.sensor', { role: 'group', 'aria-label': cfg.name },
+      h('div.bubble', icon('thermo', 19)),
+      h('div.tile-text', h('div.tile-name', cfg.name), sub),
+      value);
+    return {
+      el, cfg, kind: 'sensor',
+      update() {
+        const s = state.sensors[cfg.id];
+        const ready = Number.isFinite(s.temperature);
+        const online = s.online !== false;
+        el.classList.toggle('on', ready && online);
+        el.classList.toggle('offline', !online);
+        el.style.setProperty('--c', '#5ec8ff');
+        value.textContent = ready ? `${s.temperature.toFixed(isPhone ? 0 : 1)}°` : '—';
+        const details = [];
+        if (!online) details.push('Offline');
+        else if (!ready) details.push('Waiting for reading');
+        if (Number.isFinite(s.humidity)) details.push(`${Math.round(s.humidity)}% humidity`);
+        if (Number.isFinite(s.battery)) details.push(`${Math.round(s.battery)}% battery`);
+        if (ui.room === 'all' && !isPhone) details.push(roomName.get(cfg.room));
+        sub.textContent = details.join(' · ');
+      },
+    };
+  }
+
   for (const cfg of config.acs) tiles.set(cfg.id, acTile(cfg));
+  for (const cfg of config.sensors) tiles.set(cfg.id, sensorTile(cfg));
   for (const cfg of config.lights) tiles.set(cfg.id, lightTile(cfg));
 
   function toggleLight(id) {
@@ -255,6 +284,7 @@ export function createPanel(root, config, store, { onFocus, onMenu }) {
       if (!devices.length) continue;
       if (ui.room === 'all') nodes.push(h('div.group-label', room.name));
       devices.filter((t) => t.kind === 'ac').forEach(add);
+      devices.filter((t) => t.kind === 'sensor').forEach(add);
       devices.filter((t) => t.kind === 'light').forEach(add);
     }
     if (!nodes.length) nodes.push(h('div.group-label', 'No devices in this room yet'));

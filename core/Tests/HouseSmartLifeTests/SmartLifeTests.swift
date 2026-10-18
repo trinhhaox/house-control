@@ -71,5 +71,18 @@ final class SmartLifeTests: XCTestCase {
         XCTAssertEqual(SmartLifePlatform.device(["id": "2", "category": "infrared_ac", "codes": ["PowerOn", "T"]])["kind"] as? String, "ac")
         XCTAssertEqual(SmartLifePlatform.device(["id": "3", "category": "wsdcg", "codes": ["temp_current"]])["kind"] as? String, "sensor")
         XCTAssertEqual(SmartLifePlatform.device(["id": "1", "category": "dj", "codes": ["switch_led", "bright_value_v2"]])["capabilities"] as? [String], ["brightness"])
+        XCTAssertEqual(SmartLifePlatform.device(["id": "3", "category": "wsdcg", "codes": ["va_temperature", "va_humidity", "battery_percentage"]])["capabilities"] as? [String], ["temperature", "humidity", "battery"])
+    }
+
+    func testRoomSensorStateUsesDisplayUnits() {
+        let state = TuyaMapper.sensorState(from: [
+            ["code": "va_temperature", "value": 284.0],
+            ["code": "va_humidity", "value": 63.0],
+            ["code": "battery_percentage", "value": 87.0],
+        ])
+        XCTAssertEqual(state["temperature"] as? Double, 28.4)
+        XCTAssertEqual(state["humidity"] as? Double, 63)
+        XCTAssertEqual(state["battery"] as? Double, 87)
+        XCTAssertEqual(state["online"] as? Bool, true)
     }
 }

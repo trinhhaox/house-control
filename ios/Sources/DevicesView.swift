@@ -42,7 +42,7 @@ final class DeviceCatalog {
     }
 }
 
-/// Every lamp and AC of the plan and the real device it is linked to; tapping one picks
+/// Every lamp, AC and room sensor of the plan and the real device it is linked to; tapping one picks
 /// its device from the list of everything the connected platforms have.
 struct DevicesView: View {
     @Environment(AppModel.self) private var model
@@ -68,7 +68,7 @@ struct DevicesView: View {
                     }
                     if editor.items.isEmpty {
                         Card(padding: 16) {
-                            Text("This home has no lamps or air conditioners yet. Add your devices to a room, or draw them in the editor.")
+                            Text("This home has no lamps, air conditioners or room sensors yet. Add your devices to a room, or draw them in the editor.")
                                 .font(.system(size: 15)).foregroundStyle(Theme.muted)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
@@ -99,7 +99,7 @@ struct DevicesView: View {
         .refreshable { await catalog.load(model) }
         .task { if !catalog.loaded { await catalog.load(model) } }
         .sheet(item: $picking) { item in
-            DevicePicker(title: item.name, kind: item.kind == .ac ? "ac" : "light", current: item.link,
+            DevicePicker(title: item.name, kind: item.kind.rawValue, current: item.link,
                          used: editor?.usedDevices ?? [:], catalog: catalog) { device in
                 model.editPlan { $0.link(item.id, to: device?.raw) }
                 Haptics.shared.play("success")
@@ -158,8 +158,8 @@ struct DevicesView: View {
     private func row(_ item: PlanEditor.Item) -> some View {
         let device = catalog.device(item.link)
         return HStack(spacing: 14) {
-            IconBadge(symbol: item.kind == .ac ? "air.conditioner.horizontal.fill" : "lightbulb.fill",
-                      tint: item.link == nil ? Theme.muted : (item.kind == .ac ? Theme.accent : Theme.warm))
+            IconBadge(symbol: item.kind == .ac ? "air.conditioner.horizontal.fill" : item.kind == .sensor ? "thermometer.medium" : "lightbulb.fill",
+                      tint: item.link == nil ? Theme.muted : (item.kind == .light ? Theme.warm : Theme.accent))
             VStack(alignment: .leading, spacing: 3) {
                 Text(item.name).font(.system(size: 16.5, weight: .semibold)).foregroundStyle(Theme.text).lineLimit(1)
                 HStack(spacing: 6) {
@@ -305,7 +305,7 @@ struct AddDevicesView: View {
     private static let newRoomTag = "\u{0}new"
 
     private var candidates: [RealDevice] {
-        catalog.devices.filter { $0.kind != "sensor" && (showAll || used[$0.ref] == nil) }
+        catalog.devices.filter { showAll || used[$0.ref] == nil }
     }
 
     var body: some View {
@@ -326,10 +326,10 @@ struct AddDevicesView: View {
                 }
                 .listRowBackground(Theme.surface)
 
-                ForEach(["light", "ac"], id: \.self) { kind in
+                ForEach(["light", "ac", "sensor"], id: \.self) { kind in
                     let list = candidates.filter { $0.kind == kind }
                     if !list.isEmpty {
-                        Section(kind == "ac" ? "Air conditioners" : "Lights and plugs") {
+                        Section(kind == "ac" ? "Air conditioners" : kind == "sensor" ? "Room sensors" : "Lights and plugs") {
                             ForEach(list) { device in row(device) }
                         }
                     }

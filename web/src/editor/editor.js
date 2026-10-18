@@ -19,8 +19,8 @@ const sv = (tag, attrs = {}, ...kids) => {
   return el;
 };
 
-const KEYS = { room: 'rooms', light: 'lights', ac: 'acs', furniture: 'furniture', opening: 'openings', scene: 'scenes' };
-const TITLES = { room: 'Rooms', light: 'Lights', ac: 'Air conditioners', furniture: 'Furniture', opening: 'Doors & windows', scene: 'Scenes' };
+const KEYS = { room: 'rooms', light: 'lights', ac: 'acs', sensor: 'sensors', furniture: 'furniture', opening: 'openings', scene: 'scenes' };
+const TITLES = { room: 'Rooms', light: 'Lights', ac: 'Air conditioners', sensor: 'Room sensors', furniture: 'Furniture', opening: 'Doors & windows', scene: 'Scenes' };
 const FLOOR_FILL = { oak: '#4a3d2e', walnut: '#3c2f28', tile: '#39424b', stone: '#30353c' };
 const WALLS = ['north', 'east', 'south', 'west'];
 const SCENE_ICONS = ['sun', 'sofa', 'film', 'moon', 'door', 'table', 'bed', 'tv', 'sparkles'];
@@ -57,7 +57,7 @@ export async function bootEditor(root) {
   const links = createConnections({
     rerender: () => {
       renderSidebar();
-      if (['connections', 'service', 'light', 'ac'].includes(sel.kind)) renderInspector();
+      if (['connections', 'service', 'light', 'ac', 'sensor'].includes(sel.kind)) renderInspector();
     },
     toast,
     usedBy: () => links.usedMap(doc),
@@ -152,9 +152,9 @@ export async function bootEditor(root) {
   function validate() {
     try {
       valid = normalize(structuredClone(doc));
-      const linked = [...doc.lights, ...doc.acs].filter(isLinked).length;
+      const linked = [...doc.lights, ...doc.acs, ...doc.sensors].filter(isLinked).length;
       status.className = 'status';
-      status.replaceChildren(h('span.ok', '●'), ` ${doc.rooms.length} rooms · ${doc.lights.length} lights · ${doc.acs.length} ACs · `,
+      status.replaceChildren(h('span.ok', '●'), ` ${doc.rooms.length} rooms · ${doc.lights.length} lights · ${doc.acs.length} ACs · ${doc.sensors.length} sensors · `,
         `${linked} linked to real devices`, dirty ? h('span.dirty', ' · unsaved changes') : '');
     } catch (e) {
       valid = null;
@@ -210,6 +210,7 @@ export async function bootEditor(root) {
     if (kind === 'room') return [item.name || item.id, `${fix(item.rect[2])} × ${fix(item.rect[3])} m`];
     if (kind === 'light') return [item.name || item.id, `${roomName(item.room)} · ${item.type}`];
     if (kind === 'ac') return [item.name || item.id, `${roomName(item.room)} · ${item.wall} wall`];
+    if (kind === 'sensor') return [item.name || item.id, roomName(item.room)];
     if (kind === 'furniture') return [item.type, roomName(roomAt(item.pos)?.id) || '—'];
     if (kind === 'opening') return [item.type || 'door', `${fix(Math.hypot(item.to[0] - item.from[0], item.to[1] - item.from[1]))} m`];
     return [item.name || item.id, `${Object.keys(item.lights || {}).length} rules`];
@@ -243,7 +244,7 @@ export async function bootEditor(root) {
   }
 
   function uniqueId(base) {
-    const ids = new Set([...doc.rooms, ...doc.lights, ...doc.acs, ...doc.scenes].map((x) => x.id));
+    const ids = new Set([...doc.rooms, ...doc.lights, ...doc.acs, ...doc.sensors, ...doc.scenes].map((x) => x.id));
     if (!ids.has(base)) return base;
     for (let i = 2; ; i++) if (!ids.has(`${base}${i}`)) return `${base}${i}`;
   }
@@ -263,6 +264,9 @@ export async function bootEditor(root) {
     } else if (kind === 'ac') {
       if (!room) return toast('Add a room first', true);
       list.push({ id: uniqueId(`${room.id}.ac`), name: `${room.name} AC`, room: room.id, wall: 'north', pos: [center[0], room.rect[1]], y: 2.2 });
+    } else if (kind === 'sensor') {
+      if (!room) return toast('Add a room first', true);
+      list.push({ id: uniqueId(`${room.id}.sensor`), name: `${room.name} sensor`, room: room.id, capabilities: ['temperature'] });
     } else if (kind === 'furniture') {
       list.push({ type: 'sofa', pos: center, rot: 0 });
     } else if (kind === 'opening') {
@@ -297,6 +301,7 @@ export async function bootEditor(root) {
       // Devices cannot outlive their room.
       doc.lights = doc.lights.filter((l) => l.room !== gone.id);
       doc.acs = doc.acs.filter((a) => a.room !== gone.id);
+      doc.sensors = doc.sensors.filter((s) => s.room !== gone.id);
     }
     if (kind === 'light' || kind === 'ac' || kind === 'room') {
       const ids = new Set([...doc.lights, ...doc.acs].map((d) => d.id));
@@ -627,6 +632,13 @@ export async function bootEditor(root) {
         h('p.note', 'Dragging the unit on the plan snaps it to the nearest wall of its room.')),
       links.deviceSection(item, 'ac', linkHooks),
       links.sensorSection(item, linkHooks));
+    } else if (kind === 'sensor') {
+      head(item.name || item.id, `id: ${item.id}`);
+      nodes.push(section('Room sensor',
+        bind('Name', text(), prop(item, 'name', '')),
+        bind('Room', choice(doc.rooms.map((r) => [r.id, r.name || r.id])), { ...prop(item, 'room'), event: 'change' }),
+        h('p.note', 'Shows live temperature, humidity and battery when the device reports them.')),
+      links.deviceSection(item, 'sensor', linkHooks));
     } else if (kind === 'furniture') {
       head(item.type, 'Decoration only');
       nodes.push(section('Furniture',
@@ -927,7 +939,7 @@ export async function bootEditor(root) {
     sidebar.classList.add('p-list');
     listSheet.append(h('div.p-modal-head', h('b', 'Items'), h('button.p-text', { onclick: closeModals }, 'Done')), sidebar);
     const addables = [
-      ['room', 'home', 'Room'], ['light', 'bulb', 'Lamp'], ['ac', 'ac', 'Air conditioner'],
+      ['room', 'home', 'Room'], ['light', 'bulb', 'Lamp'], ['ac', 'ac', 'Air conditioner'], ['sensor', 'thermo', 'Room sensor'],
       ['opening', 'opening', 'Door or window'], ['furniture', 'furniture', 'Furniture'], ['scene', 'sparkles', 'Scene'],
     ];
     addSheet.append(h('div.p-modal-head', h('b', 'Add to the plan'), h('button.p-text', { onclick: closeModals }, 'Cancel')),

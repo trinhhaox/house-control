@@ -87,14 +87,19 @@ public struct DeviceReading {
     public var features: [String: Any]?
     /// A temperature sensor's reading in °C.
     public var temperature: Double?
+    /// Relative humidity and battery charge, both in percent when the platform reports them.
+    public var humidity: Double?
+    public var battery: Double?
     public var online = true
 
     public init(light: [String: Any]? = nil, ac: [String: Any]? = nil, features: [String: Any]? = nil,
-                temperature: Double? = nil, online: Bool = true) {
+                temperature: Double? = nil, humidity: Double? = nil, battery: Double? = nil, online: Bool = true) {
         self.light = light
         self.ac = ac
         self.features = features
         self.temperature = temperature
+        self.humidity = humidity
+        self.battery = battery
         self.online = online
     }
 }
