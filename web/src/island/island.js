@@ -242,6 +242,11 @@ export async function bootIsland(root) {
     isle.style.setProperty('--mood', m);
     isle.classList.toggle('quiet', onCount === 0 && !acOn);
 
+    const hasLeft = isle.dataset.state === 'peek' ? Boolean(peek?.left?.length) : Boolean(onCount || acOn);
+    const hasRight = isle.dataset.state === 'peek' ? Boolean(peek?.right) : Boolean(acOn);
+    isle.classList.toggle('has-left', hasLeft);
+    isle.classList.toggle('has-right', hasRight);
+
     if (isle.dataset.state === 'peek' && peek) {
       earLeft.replaceChildren(...peek.left);
       earRight.replaceChildren(h('span.ear-text.strong', peek.right));

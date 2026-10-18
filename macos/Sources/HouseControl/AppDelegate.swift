@@ -38,6 +38,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var phoneUserCode = ""
     /// Desktop widgets and Control Center controls: what they show, what they asked for.
     private let widgets = WidgetBridge()
+    /// Latest release on GitHub when a newer version is available.
+    private var availableUpdate: AppUpdater.Release?
+    private var updateTimer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         buildMainMenu()
@@ -67,6 +70,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         host.load()
         startSync()
         if islandEnabled { showIsland() }
+        setupUpdateChecks()
 
         // HOUSE_SNAPSHOT_DIR=<folder> writes panel.png and island.png there a few seconds
         // after launch: a look at the UI without a screen (see HOUSE_RENDER_HIDDEN).
@@ -174,6 +178,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if NSApp.currentEvent?.type == .rightMouseUp {
             panel.hide()
             let menu = NSMenu()
+            if let update = availableUpdate {
+                let updateItem = menu.addItem(withTitle: "⚠️ Update to v\(update.version) Available…", action: #selector(showAvailableUpdate), keyEquivalent: "")
+                updateItem.target = self
+                updateItem.image = NSImage(systemSymbolName: "arrow.down.circle.fill", accessibilityDescription: nil)
+                menu.addItem(.separator())
+            }
             menu.addItem(withTitle: "Edit Home…", action: #selector(openEditor), keyEquivalent: "").target = self
             menu.addItem(withTitle: "Load Floor Plan…", action: #selector(loadPlan), keyEquivalent: "").target = self
             menu.addItem(withTitle: "Reveal Plan File", action: #selector(revealPlan), keyEquivalent: "").target = self
@@ -228,6 +238,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         default: break
         }
         boot["agentLive"] = agent.isLive
+        if let update = availableUpdate {
+            boot["update"] = [
+                "available": true,
+                "version": update.version,
+                "title": update.title,
+                "url": update.releaseURL.absoluteString,
+                "dmg": update.dmgURL?.absoluteString ?? "",
+                "notes": update.notes
+            ]
+        }
         // HOUSE_OPEN_DEVICE=<id> starts the panel on that light's or AC's detail sheet.
         if let device = ProcessInfo.processInfo.environment["HOUSE_OPEN_DEVICE"] { boot["openDevice"] = device }
         return boot
@@ -279,6 +299,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
         about.addItem(withTitle: "House Control\(version.map { " \($0)" } ?? "")", action: nil, keyEquivalent: "")
         about.addItem(.separator())
+        let updateTitle = availableUpdate != nil ? "Update Available (v\(availableUpdate!.version))…" : "Check for Updates…"
+        let updateItem = about.addItem(withTitle: updateTitle, action: #selector(checkForUpdatesManual), keyEquivalent: "")
+        updateItem.target = self
+        updateItem.image = NSImage(systemSymbolName: availableUpdate != nil ? "arrow.down.circle.fill" : "arrow.triangle.2.circlepath", accessibilityDescription: nil)
+        about.addItem(.separator())
         let links: [(String, String, URL)] = [
             ("Website", "globe", About.website),
             ("Privacy Policy", "hand.raised", About.privacy),
@@ -302,6 +327,112 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func openLink(_ sender: NSMenuItem) {
         if let url = sender.representedObject as? URL { NSWorkspace.shared.open(url) }
+    }
+
+    // MARK: - App Updates
+
+    private func setupUpdateChecks() {
+        // Run first check 4 seconds after launch
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4) { [weak self] in
+            self?.checkForUpdatesInBackground()
+        }
+        // Periodic check every 6 hours
+        updateTimer = Timer.scheduledTimer(withTimeInterval: 6 * 3600, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.checkForUpdatesInBackground()
+            }
+        }
+    }
+
+    private func checkForUpdatesInBackground() {
+        let current = (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.0.2"
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                if let release = try await AppUpdater.checkLatestRelease(currentVersion: current) {
+                    self.availableUpdate = release
+                    self.panel?.host.call("updateAvailable", [
+                        "available": true,
+                        "version": release.version,
+                        "title": release.title,
+                        "url": release.releaseURL.absoluteString,
+                        "dmg": release.dmgURL?.absoluteString ?? "",
+                        "notes": release.notes
+                    ])
+                }
+            } catch {
+                // Background checks fail silently
+            }
+        }
+    }
+
+    @objc private func checkForUpdatesManual() {
+        let current = (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.0.2"
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                if let release = try await AppUpdater.checkLatestRelease(currentVersion: current) {
+                    self.availableUpdate = release
+                    self.panel?.host.call("updateAvailable", [
+                        "available": true,
+                        "version": release.version,
+                        "title": release.title,
+                        "url": release.releaseURL.absoluteString,
+                        "dmg": release.dmgURL?.absoluteString ?? "",
+                        "notes": release.notes
+                    ])
+                    self.promptUpdate(release)
+                } else {
+                    let alert = NSAlert()
+                    alert.messageText = "You're Up to Date!"
+                    alert.informativeText = "House Control \(current) is currently the newest version available."
+                    alert.alertStyle = .informational
+                    alert.addButton(withTitle: "OK")
+                    alert.runModal()
+                }
+            } catch {
+                let alert = NSAlert()
+                alert.messageText = "Update Check Failed"
+                alert.informativeText = "Could not check GitHub for updates (\(error.localizedDescription)). Please check your internet connection and try again."
+                alert.alertStyle = .warning
+                alert.addButton(withTitle: "OK")
+                alert.runModal()
+            }
+        }
+    }
+
+    @objc private func showAvailableUpdate() {
+        if let update = availableUpdate {
+            promptUpdate(update)
+        } else {
+            checkForUpdatesManual()
+        }
+    }
+
+    private func promptUpdate(_ release: AppUpdater.Release) {
+        let current = (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.0.2"
+        let alert = NSAlert()
+        alert.messageText = "House Control \(release.version) is Available!"
+        let rawNotes = release.notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        let snippet = rawNotes.count > 500 ? String(rawNotes.prefix(500)) + "…" : rawNotes
+        alert.informativeText = "A new version of House Control is available on GitHub (currently running \(current)).\n\n"
+            + (snippet.isEmpty ? "" : "\(snippet)\n\n")
+            + "Would you like to download the updated disk image?"
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "Download DMG")
+        alert.addButton(withTitle: "View on GitHub")
+        alert.addButton(withTitle: "Later")
+
+        let response = alert.runModal()
+        if response == .alertFirstButtonReturn {
+            if let dmgURL = release.dmgURL {
+                NSWorkspace.shared.open(dmgURL)
+            } else {
+                NSWorkspace.shared.open(release.releaseURL)
+            }
+        } else if response == .alertSecondButtonReturn {
+            NSWorkspace.shared.open(release.releaseURL)
+        }
     }
 
     @objc private func revealLog() {
@@ -366,6 +497,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case "openAgent": openAgent()
         case "revealPlan": revealPlan()
         case "openEditor": openEditor()
+        case "checkUpdates": checkForUpdatesManual()
+        case "downloadUpdate": showAvailableUpdate()
+        case "openUpdate":
+            if let url = availableUpdate?.releaseURL ?? AppUpdater.releasesURL as URL? {
+                NSWorkspace.shared.open(url)
+            }
         case "quit": NSApp.terminate(nil)
 
         // Editor

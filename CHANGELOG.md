@@ -3,6 +3,15 @@
 What changed in each release of House Control. The Mac app is on
 [Releases](https://github.com/0xProbabillity/house-control/releases); the iPhone app is on TestFlight.
 
+## 1.0.2 — 2026-10-18
+
+### Notch Island sizing & in-app updates
+
+- **Compact Notch Island**: Ears now size dynamically and asymmetrically based on active content (collapsing empty sides to 0px and shrinking left ear to 36px), preventing the island from covering neighboring menu bar items and status icons.
+- **Auto-centered cutout**: Hardware camera cutout remains centered regardless of asymmetrical ear widths.
+- **In-app update notifications**: Mac app periodically checks GitHub releases in the background and notifies when a newer DMG is available with quick download & release note previews.
+- **Manual check for updates**: Added "Check for Updates..." to the menu bar extra and update prompt banner in the web control panel.
+
 ## 1.0.1 — 2026-10-18
 
 ### Room sensors

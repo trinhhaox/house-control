@@ -48,6 +48,13 @@ export function createPanel(root, config, store, { onFocus, onMenu }) {
   // Shown while an AI assistant has a link to this home (AI Access on the Mac).
   const aiBadge = h('button.ai-badge', { hidden: true, title: 'An AI assistant has access — click to manage', 'aria-label': 'AI access',
     onclick: () => onMenu(aiBadge, 'agent') }, icon('sparkles', 13, 2.2), h('span', 'AI'));
+  // Shown when a newer version is available on GitHub.
+  const updateBadge = h('button.update-badge', {
+    hidden: true,
+    title: 'A new version of House Control is available — click to download',
+    'aria-label': 'Update available',
+    onclick: () => post('downloadUpdate'),
+  }, icon('download', 13, 2.2), h('span', 'Update'));
 
   const scenes = h('div.scenes');
   const rooms = h('div.rooms');
@@ -69,7 +76,7 @@ export function createPanel(root, config, store, { onFocus, onMenu }) {
     h('header.top',
       h('div.home', h('div.home-badge', icon('home', 17)),
         h('div', h('div.home-name', config.name), homeSub)),
-      aiBadge, gear, power, quit),
+      updateBadge, aiBadge, gear, power, quit),
     tooltip, panel, sheet, toastEl);
   const card = h('div.card.booting', h('div.notch'), clip);
   root.replaceChildren(card);
@@ -783,6 +790,16 @@ export function createPanel(root, config, store, { onFocus, onMenu }) {
     get room() { return ui.room; },
     setNotch(x) { card.style.setProperty('--notch-x', `${x}px`); },
     setAgentLive(live) { aiBadge.hidden = !live; },
+    setUpdate(info) {
+      if (info && info.available) {
+        updateBadge.hidden = false;
+        updateBadge.title = `House Control v${info.version} is available — click to download`;
+        const label = updateBadge.querySelector('span');
+        if (label) label.textContent = `v${info.version}`;
+      } else {
+        updateBadge.hidden = true;
+      }
+    },
     /** `ai`: something an AI assistant did (who, what), instead of an error. */
     toast(text, ai = null) {
       toastEl.replaceChildren(...(ai ? [h('span.toast-ai', icon('sparkles', 13, 2.2), ai), h('span', text)] : [text]));

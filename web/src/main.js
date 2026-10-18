@@ -143,6 +143,8 @@ async function boot() {
   };
   incoming.agentLive = (live) => panel.setAgentLive(Boolean(live));
   panel.setAgentLive(Boolean(window.__HOUSE_BOOT__?.agentLive));
+  incoming.updateAvailable = (update) => panel.setUpdate(update);
+  if (window.__HOUSE_BOOT__?.update) panel.setUpdate(window.__HOUSE_BOOT__.update);
 
   store.onDeviceError = (id, message) => {
     const name = store.lightCfg.get(id)?.name || store.acCfg.get(id)?.name || id;
@@ -179,6 +181,7 @@ async function boot() {
         { label: 'AI access…', action: () => post('openAgent') },
         { label: 'Load floor plan…', action: () => post('loadPlan') },
         { label: 'Reveal plan file', action: () => post('revealPlan') },
+        { label: 'Check for updates…', action: () => post('checkUpdates') },
         '-',
         { label: 'Quit House Control', action: () => post('quit') });
     }

@@ -15,7 +15,7 @@ final class IslandController: NSObject {
     // Must match island.css: the open island below the notch, and room for its shadow.
     private static let open = NSSize(width: 664, height: 292)
     private static let canvas = NSSize(width: 820, height: 470)
-    private static let ear: CGFloat = 64
+    private static let ear: CGFloat = 38
 
     let host: WebHost
     private let window: IslandPanel
@@ -100,7 +100,7 @@ final class IslandController: NSObject {
             hasNotch = false
             let bar = frame.maxY - screen.visibleFrame.maxY
             let height = bar > 10 ? bar : 28
-            notch = NSRect(x: frame.midX - 95, y: frame.maxY - height, width: 190, height: height)
+            notch = NSRect(x: frame.midX - 70, y: frame.maxY - height, width: 140, height: height)
         }
         // A real notch is black in full-screen spaces anyway; a drawn one would cover a film.
         window.collectionBehavior = hasNotch ? [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
