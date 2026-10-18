@@ -346,7 +346,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func checkForUpdatesInBackground() {
-        let current = (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.0.2"
+        let current = (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.0.3"
         Task { @MainActor [weak self] in
             guard let self else { return }
             do {
@@ -368,7 +368,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func checkForUpdatesManual() {
-        let current = (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.0.2"
+        let current = (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.0.3"
         Task { @MainActor [weak self] in
             guard let self else { return }
             do {
@@ -411,7 +411,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func promptUpdate(_ release: AppUpdater.Release) {
-        let current = (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.0.2"
+        let current = (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.0.3"
         let alert = NSAlert()
         alert.messageText = "House Control \(release.version) is Available!"
         let rawNotes = release.notes.trimmingCharacters(in: .whitespacesAndNewlines)

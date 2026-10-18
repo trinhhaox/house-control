@@ -3,6 +3,15 @@
 What changed in each release of House Control. The Mac app is on
 [Releases](https://github.com/0xProbabillity/house-control/releases); the iPhone app is on TestFlight.
 
+## 1.0.3 — 2026-10-18
+
+### Notch Island toggle controls
+
+- **Control panel toggle button**: Added a dedicated Notch Island toggle button on the header of the main control panel, indicating live status with a glowing active state.
+- **Settings menu toggle**: Added "Hide Notch Island" / "Show Notch Island" in the Floor Plan dropdown menu.
+- **Island header quick-hide**: Added a hide button directly inside the expanded Notch Island header for immediate dismissal.
+- **Two-way synchronization**: Toggling island state instantly syncs across native macOS window state, web panel controls, and persistent user defaults.
+
 ## 1.0.2 — 2026-10-18
 
 ### Notch Island sizing & in-app updates
