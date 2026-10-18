@@ -18,36 +18,54 @@ struct WelcomeView: View {
                 .padding(.top, 44)
                 .accessibilityHidden(true)
 
-            Text("Welcome to House Control")
+            Text(loc("Welcome to House Control", "Chào mừng đến với House Control"))
                 .font(.system(size: 27, weight: .bold))
                 .foregroundStyle(Theme.text)
                 .multilineTextAlignment(.center)
                 .padding(.top, 20)
-            Text("Your home as a live 3D model, in your pocket.")
+            Text(loc("Your home as a live 3D model, in your pocket.", "Ngôi nhà của bạn dưới dạng mô hình 3D trực quan, ngay trong túi."))
                 .font(.system(size: 16))
                 .foregroundStyle(Theme.muted)
                 .multilineTextAlignment(.center)
                 .padding(.top, 6)
 
             VStack(alignment: .leading, spacing: 26) {
-                feature("hand.tap.fill", Theme.warm, "Tap a lamp, drag to dim",
-                        "Lights, colours, air conditioners and scenes, right on the floor plan.")
-                feature("pencil.and.ruler.fill", Theme.accent, "Draw it here or on your Mac",
-                        "Rooms, lamps and ACs, on this iPhone. Pair a Mac any time: both stay in sync.")
-                feature("lightbulb.2.fill", Theme.green, "Your real devices",
-                        AppModel.includesSmartLife
-                            ? "Smart Life, Home Assistant, Philips Hue and Apple Home. Until you connect one, everything is simulated."
-                            : "Home Assistant, Philips Hue and Apple Home. Until you connect one, everything is simulated.")
+                feature(
+                    "hand.tap.fill",
+                    Theme.warm,
+                    loc("Tap a lamp, drag to dim", "Chạm vào đèn, kéo để chỉnh độ sáng"),
+                    loc("Lights, colours, air conditioners and scenes, right on the floor plan.", "Đèn, màu sắc, máy điều hòa và kịch bản, ngay trên sơ đồ nhà.")
+                )
+                feature(
+                    "pencil.and.ruler.fill",
+                    Theme.accent,
+                    loc("Draw it here or on your Mac", "Vẽ trên iPhone hoặc trên Mac"),
+                    loc("Rooms, lamps and ACs, on this iPhone. Pair a Mac any time: both stay in sync.", "Phòng, đèn và điều hòa trên iPhone. Ghép đôi với Mac bất cứ lúc nào: cả hai luôn đồng bộ.")
+                )
+                feature(
+                    "lightbulb.2.fill",
+                    Theme.green,
+                    loc("Your real devices", "Thiết bị thực tế của bạn"),
+                    AppModel.includesSmartLife
+                        ? loc(
+                            "Smart Life, Home Assistant, Philips Hue and Apple Home. Until you connect one, everything is simulated.",
+                            "Smart Life, Home Assistant, Philips Hue và Apple Home. Khi chưa kết nối, các thiết bị sẽ chạy ở chế độ mô phỏng."
+                        )
+                        : loc(
+                            "Home Assistant, Philips Hue and Apple Home. Until you connect one, everything is simulated.",
+                            "Home Assistant, Philips Hue và Apple Home. Khi chưa kết nối, các thiết bị sẽ chạy ở chế độ mô phỏng."
+                        )
+                )
             }
             .padding(.horizontal, 6)
             .frame(maxHeight: .infinity)
 
-            Button { model.finishWelcome(.setUpHere) } label: { Label("Set up my home", systemImage: "house.fill") }
+            Button { model.finishWelcome(.setUpHere) } label: { Label(loc("Set up my home", "Thiết lập nhà của tôi"), systemImage: "house.fill") }
                 .buttonStyle(PrimaryButtonStyle())
-            Button { model.finishWelcome(.pair) } label: { Label("Pair with my Mac", systemImage: "laptopcomputer.and.iphone") }
+            Button { model.finishWelcome(.pair) } label: { Label(loc("Pair with my Mac", "Ghép đôi với máy Mac"), systemImage: "laptopcomputer.and.iphone") }
                 .buttonStyle(SecondaryButtonStyle())
                 .padding(.top, 10)
-            Button("Explore the demo home") { model.finishWelcome(.demo) }
+            Button(loc("Explore the demo home", "Khám phá ngôi nhà mẫu")) { model.finishWelcome(.demo) }
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(Theme.muted)
                 .frame(minHeight: 50)

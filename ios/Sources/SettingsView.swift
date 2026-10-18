@@ -31,12 +31,12 @@ struct SettingsView: View {
                 .padding(.bottom, 32)
             }
             .background(Theme.background)
-            .navigationTitle("Settings")
+            .navigationTitle(loc("Settings", "Cài đặt"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(Theme.background, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }.fontWeight(.semibold)
+                    Button(loc("Done", "Xong")) { dismiss() }.fontWeight(.semibold)
                 }
             }
             .navigationDestination(for: SettingsRoute.self) { route in
@@ -62,7 +62,7 @@ struct SettingsView: View {
             do { try model.importPlan(from: try result.get()) }
             catch { problem = error.localizedDescription }
         }
-        .alert("Could not open this floor plan", isPresented: Binding(get: { problem != nil }, set: { if !$0 { problem = nil } })) {
+        .alert(loc("Could not open this floor plan", "Không thể mở sơ đồ này"), isPresented: Binding(get: { problem != nil }, set: { if !$0 { problem = nil } })) {
             Button("OK", role: .cancel) {}
         } message: { Text(problem ?? "") }
     }
@@ -71,38 +71,38 @@ struct SettingsView: View {
 
     private var homeSection: some View {
         VStack(spacing: 10) {
-            SectionTitle("Home")
+            SectionTitle(loc("Home", "Nhà"))
             Card {
                 if model.hasCustomPlan {
-                    planRow("custom", name: model.customPlanName ?? "My home", detail: customPlanDetail, symbol: "house.fill", tint: Theme.warm)
+                    planRow("custom", name: model.customPlanName ?? loc("My home", "Nhà của tôi"), detail: customPlanDetail, symbol: "house.fill", tint: Theme.warm)
                     RowDivider()
                 }
-                planRow("home", name: "Apartment", detail: "Demo · 5 rooms, simulated devices", symbol: "building.2.fill", tint: Theme.accent)
+                planRow("home", name: loc("Apartment", "Căn hộ"), detail: loc("Demo · 5 rooms, simulated devices", "Mẫu · 5 phòng, thiết bị mô phỏng"), symbol: "building.2.fill", tint: Theme.accent)
                 RowDivider()
-                planRow("studio", name: "Studio", detail: "Demo · 3 rooms, simulated devices", symbol: "square.split.bottomrightquarter.fill", tint: Theme.accent)
+                planRow("studio", name: "Studio", detail: loc("Demo · 3 rooms, simulated devices", "Mẫu · 3 phòng, thiết bị mô phỏng"), symbol: "square.split.bottomrightquarter.fill", tint: Theme.accent)
             }
             Card {
                 Button { model.openEditor() } label: {
-                    linkRow(symbol: "pencil.and.ruler.fill", tint: Theme.accent, title: "Edit floor plan",
-                            detail: "Rooms, lamps, air conditioners, furniture")
+                    linkRow(symbol: "pencil.and.ruler.fill", tint: Theme.accent, title: loc("Edit floor plan", "Chỉnh sửa sơ đồ nhà"),
+                            detail: loc("Rooms, lamps, air conditioners, furniture", "Phòng, đèn, máy điều hòa, nội thất"))
                 }
                 .buttonStyle(RowButtonStyle())
                 RowDivider()
                 NavigationLink(value: SettingsRoute.devices) {
-                    linkRow(symbol: "link", tint: Theme.green, title: "Devices",
-                            detail: model.linkedDevices == 0 ? "Link the plan to your real devices"
-                                : "\(model.linkedDevices) linked to real devices")
+                    linkRow(symbol: "link", tint: Theme.green, title: loc("Devices", "Thiết bị"),
+                            detail: model.linkedDevices == 0 ? loc("Link the plan to your real devices", "Liên kết sơ đồ với thiết bị thực tế")
+                                : loc("\(model.linkedDevices) linked to real devices", "\(model.linkedDevices) thiết bị đã liên kết thực tế"))
                 }
                 .buttonStyle(RowButtonStyle())
             }
             HStack(spacing: 10) {
-                Button { newHome = true } label: { Label("New home", systemImage: "plus") }
+                Button { newHome = true } label: { Label(loc("New home", "Nhà mới"), systemImage: "plus") }
                     .buttonStyle(SecondaryButtonStyle())
-                Button { importing = true } label: { Label("Import file", systemImage: "square.and.arrow.down") }
+                Button { importing = true } label: { Label(loc("Import file", "Nhập tệp"), systemImage: "square.and.arrow.down") }
                     .buttonStyle(SecondaryButtonStyle())
             }
             if !model.hasCustomPlan {
-                footnote("Make your own home here, or pair with House Control on a Mac and the one drawn there arrives by itself.")
+                footnote(loc("Make your own home here, or pair with House Control on a Mac and the one drawn there arrives by itself.", "Tạo ngôi nhà của bạn tại đây, hoặc ghép đôi với House Control trên Mac để đồng bộ tự động."))
             }
         }
     }
@@ -153,13 +153,13 @@ struct SettingsView: View {
 
     private var shortcutsSection: some View {
         VStack(spacing: 10) {
-            SectionTitle("Shortcuts")
+            SectionTitle(loc("Shortcuts", "Phím tắt"))
             Card {
                 NavigationLink(value: SettingsRoute.quickActions) {
                     HStack(spacing: 14) {
                         IconBadge(symbol: "hand.tap.fill", tint: Theme.warm)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Quick Actions").font(.system(size: 16.5, weight: .semibold)).foregroundStyle(Theme.text)
+                            Text(loc("Quick Actions", "Tác vụ nhanh")).font(.system(size: 16.5, weight: .semibold)).foregroundStyle(Theme.text)
                             Text(quickActionsDetail).font(.system(size: 13.5)).foregroundStyle(Theme.muted).lineLimit(1)
                         }
                         Spacer(minLength: 8)
@@ -170,20 +170,23 @@ struct SettingsView: View {
                 }
                 .buttonStyle(RowButtonStyle())
             }
-            footnote("Press and hold the app icon for these. Widgets and Control Center buttons are added from the Home Screen and Control Center.")
+            footnote(loc(
+                "Press and hold the app icon for these. Widgets and Control Center buttons are added from the Home Screen and Control Center.",
+                "Nhấn giữ biểu tượng ứng dụng để dùng các tác vụ này. Tiện ích và nút Trung tâm điều khiển có thể thêm từ Màn hình chính."
+            ))
         }
     }
 
     private var quickActionsDetail: String {
         let names = model.quickActions.chosen.compactMap(model.quickActions.lookup).map(\.title)
-        return names.isEmpty ? "None" : names.joined(separator: " · ")
+        return names.isEmpty ? loc("None", "Không có") : names.joined(separator: " · ")
     }
 
     // MARK: - Mac
 
     private var macSection: some View {
         VStack(spacing: 10) {
-            SectionTitle("Mac")
+            SectionTitle(loc("Mac", "Máy Mac"))
             if let name = model.macName {
                 Card {
                     HStack(spacing: 14) {
@@ -209,25 +212,31 @@ struct SettingsView: View {
                     }
                 }
                 HStack(spacing: 10) {
-                    Button { model.syncNow() } label: { Label("Sync now", systemImage: "arrow.triangle.2.circlepath") }
+                    Button { model.syncNow() } label: { Label(loc("Sync now", "Đồng bộ ngay"), systemImage: "arrow.triangle.2.circlepath") }
                         .buttonStyle(SecondaryButtonStyle())
-                    Button { confirmUnpair = true } label: { Text("Unpair") }
+                    Button { confirmUnpair = true } label: { Text(loc("Unpair", "Hủy ghép đôi")) }
                         .buttonStyle(SecondaryButtonStyle(tint: Theme.red))
                         .frame(maxWidth: 120)
                 }
-                .confirmationDialog("Unpair from \(name)?", isPresented: $confirmUnpair, titleVisibility: .visible) {
-                    Button("Unpair", role: .destructive) { model.unpair() }
+                .confirmationDialog(loc("Unpair from \(name)?", "Hủy ghép đôi với \(name)?"), isPresented: $confirmUnpair, titleVisibility: .visible) {
+                    Button(loc("Unpair", "Hủy ghép đôi"), role: .destructive) { model.unpair() }
                 } message: {
-                    Text("The floor plan stays on this iPhone but no longer follows the Mac.")
+                    Text(loc("The floor plan stays on this iPhone but no longer follows the Mac.", "Sơ đồ nhà vẫn lưu trên iPhone nhưng sẽ không còn đồng bộ với máy Mac."))
                 }
-                footnote("Changes saved on either one reach the other while both are on the same Wi-Fi: the floor plan, device links, Home Assistant and Hue.")
+                footnote(loc(
+                    "Changes saved on either one reach the other while both are on the same Wi-Fi: the floor plan, device links, Home Assistant and Hue.",
+                    "Các thay đổi trên một thiết bị sẽ được đồng bộ sang thiết bị kia khi cùng mạng Wi-Fi: sơ đồ nhà, thiết bị, Home Assistant và Hue."
+                ))
             } else {
                 Card(padding: 16) {
                     HStack(alignment: .top, spacing: 14) {
                         IconBadge(symbol: "laptopcomputer.and.iphone", tint: Theme.accent)
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Optional: a Mac").font(.system(size: 16.5, weight: .semibold)).foregroundStyle(Theme.text)
-                            Text("Pair with House Control on a Mac and your home — rooms, lamps, device links, connections — stays the same on both, whichever one you edit.")
+                            Text(loc("Optional: a Mac", "Tùy chọn: Máy Mac")).font(.system(size: 16.5, weight: .semibold)).foregroundStyle(Theme.text)
+                            Text(loc(
+                                "Pair with House Control on a Mac and your home — rooms, lamps, device links, connections — stays the same on both, whichever one you edit.",
+                                "Ghép đôi với House Control trên Mac để đồng bộ tự động ngôi nhà của bạn — phòng, đèn, thiết bị và các kết nối."
+                            ))
                                 .font(.system(size: 14))
                                 .foregroundStyle(Theme.muted)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -235,7 +244,7 @@ struct SettingsView: View {
                     }
                 }
                 NavigationLink(value: SettingsRoute.pairing) {
-                    Label("Pair with Mac", systemImage: "qrcode.viewfinder")
+                    Label(loc("Pair with Mac", "Ghép đôi với Mac"), systemImage: "qrcode.viewfinder")
                 }
                 .buttonStyle(PrimaryButtonStyle())
             }
@@ -324,17 +333,17 @@ struct SettingsView: View {
 
     private var connectionsSection: some View {
         VStack(spacing: 10) {
-            SectionTitle(AppModel.includesSmartLife ? "More connections" : "Connections")
+            SectionTitle(AppModel.includesSmartLife ? loc("More connections", "Thêm kết nối") : loc("Connections", "Kết nối"))
             Card {
                 NavigationLink(value: SettingsRoute.homeAssistant) {
                     serviceRow(symbol: "server.rack", tint: ConnectionLook.homeAssistant, title: "Home Assistant",
-                               detail: model.homeAssistantName ?? "Connect your server", on: model.homeAssistantName != nil)
+                               detail: model.homeAssistantName ?? loc("Connect your server", "Kết nối máy chủ"), on: model.homeAssistantName != nil)
                 }
                 .buttonStyle(RowButtonStyle())
                 RowDivider()
                 NavigationLink(value: SettingsRoute.hue) {
                     serviceRow(symbol: "lightbulb.led.fill", tint: ConnectionLook.hue, title: "Philips Hue",
-                               detail: model.hueName ?? "Pair your Hue Bridge", on: model.hueName != nil)
+                               detail: model.hueName ?? loc("Pair your Hue Bridge", "Ghép đôi Hue Bridge"), on: model.hueName != nil)
                 }
                 .buttonStyle(RowButtonStyle())
                 RowDivider()
@@ -376,15 +385,15 @@ struct SettingsView: View {
             Spacer(minLength: 8)
             switch model.homeKit {
             case .off:
-                Button("Connect") { model.connectHomeKit() }.buttonStyle(PillButtonStyle())
+                Button(loc("Connect", "Kết nối")) { model.connectHomeKit() }.buttonStyle(PillButtonStyle())
             case .waiting:
                 ProgressView().tint(Theme.muted)
             case .denied:
-                Button("Allow") {
+                Button(loc("Allow", "Cho phép")) {
                     if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
                 }.buttonStyle(PillButtonStyle())
             case .ready:
-                Button("Turn off") { model.disconnectHomeKit() }.buttonStyle(PillButtonStyle(tint: Theme.muted))
+                Button(loc("Turn off", "Tắt")) { model.disconnectHomeKit() }.buttonStyle(PillButtonStyle(tint: Theme.muted))
             }
         }
         .padding(.horizontal, 14)
@@ -394,50 +403,62 @@ struct SettingsView: View {
 
     private var homeKitDetail: String {
         switch model.homeKit {
-        case .off: return "Lamps, ACs and sensors from the Home app"
-        case .waiting: return "Opening your homes…"
-        case .denied: return "Not allowed. Turn on House Control in Settings → Privacy → HomeKit"
+        case .off: return loc("Lamps, ACs and sensors from the Home app", "Đèn, máy lạnh và cảm biến từ ứng dụng Nhà")
+        case .waiting: return loc("Opening your homes…", "Đang mở danh sách nhà…")
+        case .denied: return loc("Not allowed. Turn on House Control in Settings → Privacy → HomeKit", "Chưa cấp quyền. Bật House Control trong Cài đặt → Quyền riêng tư → HomeKit")
         case .ready(let homes, let accessories):
-            if homes.isEmpty { return "No homes yet. Set one up in the Home app" }
-            return "\(accessories) accessor\(accessories == 1 ? "y" : "ies") · \(homes.joined(separator: ", "))"
+            if homes.isEmpty { return loc("No homes yet. Set one up in the Home app", "Chưa có nhà nào. Hãy tạo trong ứng dụng Nhà") }
+            return "\(accessories) \(loc("accessories", "phụ kiện")) · \(homes.joined(separator: ", "))"
         }
     }
 
     private var homeKitFootnote: String {
         if case .ready = model.homeKit, model.macName != nil {
-            return "This iPhone switches your Apple Home devices; your Mac lists them for its editor, but macOS lets only App Store apps use HomeKit."
+            return loc(
+                "This iPhone switches your Apple Home devices; your Mac lists them for its editor, but macOS lets only App Store apps use HomeKit.",
+                "iPhone điều khiển các thiết bị Apple Home; máy Mac nhận danh sách cho trình vẽ sơ đồ."
+            )
         }
-        return "Home Assistant and Hue set up here or on your paired Mac work on both, shared over your encrypted link."
+        return loc(
+            "Home Assistant and Hue set up here or on your paired Mac work on both, shared over your encrypted link.",
+            "Home Assistant và Hue cài đặt trên iPhone hoặc Mac đều hoạt động trên cả hai nhờ liên kết mã hóa."
+        )
     }
 
     // MARK: - About
 
     private var aboutSection: some View {
         VStack(spacing: 10) {
-            SectionTitle("About")
+            SectionTitle(loc("About", "Giới thiệu"))
             Card {
-                infoRow("Version", value: version)
+                infoRow(loc("Version", "Phiên bản"), value: version)
                 RowDivider().padding(.leading, -52)
-                infoRow("Privacy", value: "No account, no analytics")
+                infoRow(loc("Privacy", "Quyền riêng tư"), value: loc("No account, no analytics", "Không tài khoản, không thu thập dữ liệu"))
             }
             footnote(AppModel.includesSmartLife
-                ? "House Control talks to your own devices: Tuya's servers for Smart Life, your Home Assistant, your Hue Bridge, Apple Home, and your Mac. Nothing else leaves this iPhone."
-                : "House Control talks to your own devices: your Home Assistant, your Hue Bridge, Apple Home, and your Mac. Nothing else leaves this iPhone.")
+                ? loc(
+                    "House Control talks to your own devices: Tuya's servers for Smart Life, your Home Assistant, your Hue Bridge, Apple Home, and your Mac. Nothing else leaves this iPhone.",
+                    "House Control kết nối trực tiếp với thiết bị của bạn: máy chủ Tuya, Home Assistant, Hue Bridge, Apple Home và máy Mac. Không có dữ liệu nào khác rời khỏi iPhone."
+                )
+                : loc(
+                    "House Control talks to your own devices: your Home Assistant, your Hue Bridge, Apple Home, and your Mac. Nothing else leaves this iPhone.",
+                    "House Control kết nối trực tiếp với thiết bị của bạn: Home Assistant, Hue Bridge, Apple Home và máy Mac. Không có dữ liệu nào khác rời khỏi iPhone."
+                ))
             Card {
-                webRow(About.website, symbol: "globe", tint: Theme.accent, title: "Website", detail: "Features, help and the Mac app")
+                webRow(About.website, symbol: "globe", tint: Theme.accent, title: loc("Website", "Trang web"), detail: loc("Features, help and the Mac app", "Tính năng, trợ giúp và ứng dụng Mac"))
                 RowDivider()
-                webRow(About.privacy, symbol: "hand.raised.fill", tint: Theme.green, title: "Privacy Policy", detail: "Nothing is collected")
+                webRow(About.privacy, symbol: "hand.raised.fill", tint: Theme.green, title: loc("Privacy Policy", "Chính sách quyền riêng tư"), detail: loc("Nothing is collected", "Tuyệt đối không thu thập dữ liệu"))
                 RowDivider()
-                webRow(About.support, symbol: "questionmark.circle.fill", tint: Theme.warm, title: "Support", detail: "Questions and problems")
+                webRow(About.support, symbol: "questionmark.circle.fill", tint: Theme.warm, title: loc("Support", "Hỗ trợ kỹ thuật"), detail: loc("Questions and problems", "Câu hỏi và giải đáp thắc mắc"))
             }
-            SectionTitle("Developer").padding(.top, 20)
+            SectionTitle(loc("Developer", "Nhà phát triển")).padding(.top, 20)
             Card {
                 webRow(About.x, symbol: "at", tint: Theme.text, title: "\(About.developer) on X", detail: "@0xProbabillity")
                 RowDivider()
                 webRow(About.github, symbol: "chevron.left.forwardslash.chevron.right", tint: Theme.text,
                        title: "\(About.developer) on GitHub", detail: "github.com/0xProbabillity")
                 RowDivider()
-                webRow(About.source, symbol: "shippingbox.fill", tint: Theme.text, title: "Source code", detail: "House Control is open source")
+                webRow(About.source, symbol: "shippingbox.fill", tint: Theme.text, title: loc("Source code", "Mã nguồn"), detail: loc("House Control is open source", "House Control là mã nguồn mở"))
             }
         }
     }

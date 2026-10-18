@@ -174,39 +174,50 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return image
     }
 
+    private static var isVietnamese: Bool {
+        Locale.preferredLanguages.first?.hasPrefix("vi") == true
+    }
+
+    private static func loc(_ en: String, _ vi: String) -> String {
+        isVietnamese ? vi : en
+    }
+
     @objc private func statusItemClicked() {
         if NSApp.currentEvent?.type == .rightMouseUp {
             panel.hide()
             let menu = NSMenu()
             if let update = availableUpdate {
-                let updateItem = menu.addItem(withTitle: "⚠️ Update to v\(update.version) Available…", action: #selector(showAvailableUpdate), keyEquivalent: "")
+                let updateTitle = Self.loc("⚠️ Update to v\(update.version) Available…", "⚠️ Có bản cập nhật v\(update.version)…")
+                let updateItem = menu.addItem(withTitle: updateTitle, action: #selector(showAvailableUpdate), keyEquivalent: "")
                 updateItem.target = self
                 updateItem.image = NSImage(systemSymbolName: "arrow.down.circle.fill", accessibilityDescription: nil)
                 menu.addItem(.separator())
             }
-            menu.addItem(withTitle: "Edit Home…", action: #selector(openEditor), keyEquivalent: "").target = self
-            menu.addItem(withTitle: "Load Floor Plan…", action: #selector(loadPlan), keyEquivalent: "").target = self
-            menu.addItem(withTitle: "Reveal Plan File", action: #selector(revealPlan), keyEquivalent: "").target = self
-            menu.addItem(withTitle: "Reveal Device Log", action: #selector(revealLog), keyEquivalent: "").target = self
+            menu.addItem(withTitle: Self.loc("Edit Home…", "Chỉnh sửa nhà…"), action: #selector(openEditor), keyEquivalent: "").target = self
+            menu.addItem(withTitle: Self.loc("Load Floor Plan…", "Mở sơ đồ nhà…"), action: #selector(loadPlan), keyEquivalent: "").target = self
+            menu.addItem(withTitle: Self.loc("Reveal Plan File", "Mở thư mục sơ đồ"), action: #selector(revealPlan), keyEquivalent: "").target = self
+            menu.addItem(withTitle: Self.loc("Reveal Device Log", "Mở nhật ký thiết bị"), action: #selector(revealLog), keyEquivalent: "").target = self
             menu.addItem(.separator())
-            let islandItem = menu.addItem(withTitle: "Show Island", action: #selector(toggleIsland), keyEquivalent: "")
+            let islandTitle = island?.isShown == true ? Self.loc("Hide Island", "Ẩn Notch Island") : Self.loc("Show Island", "Hiện Notch Island")
+            let islandItem = menu.addItem(withTitle: islandTitle, action: #selector(toggleIsland), keyEquivalent: "")
             islandItem.target = self
             islandItem.state = island?.isShown == true ? .on : .off
-            menu.addItem(withTitle: "Pair iPhone…", action: #selector(pairPhone), keyEquivalent: "").target = self
-            let aiItem = menu.addItem(withTitle: agent.isLive ? "AI Access — Live" : "AI Access…", action: #selector(openAgent), keyEquivalent: "")
+            menu.addItem(withTitle: Self.loc("Pair iPhone…", "Ghép đôi iPhone…"), action: #selector(pairPhone), keyEquivalent: "").target = self
+            let aiTitle = agent.isLive ? Self.loc("AI Access — Live", "Truy cập AI — Đang mở") : Self.loc("AI Access…", "Truy cập AI…")
+            let aiItem = menu.addItem(withTitle: aiTitle, action: #selector(openAgent), keyEquivalent: "")
             aiItem.target = self
             aiItem.image = NSImage(systemSymbolName: "sparkles", accessibilityDescription: nil)
             if agent.isLive {
-                menu.addItem(withTitle: "Stop AI Access", action: #selector(stopAgent), keyEquivalent: "").target = self
+                menu.addItem(withTitle: Self.loc("Stop AI Access", "Dừng truy cập AI"), action: #selector(stopAgent), keyEquivalent: "").target = self
             }
             for device in sync.connectedDevices {
-                let item = menu.addItem(withTitle: "\(device) is connected", action: nil, keyEquivalent: "")
+                let item = menu.addItem(withTitle: Self.loc("\(device) is connected", "\(device) đã kết nối"), action: nil, keyEquivalent: "")
                 item.image = NSImage(systemSymbolName: "iphone", accessibilityDescription: nil)
             }
             menu.addItem(.separator())
             menu.addItem(aboutMenuItem())
-            menu.addItem(withTitle: "Reload", action: #selector(reloadAll), keyEquivalent: "").target = self
-            menu.addItem(withTitle: "Quit House Control", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+            menu.addItem(withTitle: Self.loc("Reload", "Tải lại"), action: #selector(reloadAll), keyEquivalent: "").target = self
+            menu.addItem(withTitle: Self.loc("Quit House Control", "Thoát House Control"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
             statusItem.menu = menu
             statusItem.button?.performClick(nil)
             statusItem.menu = nil
@@ -300,19 +311,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
         about.addItem(withTitle: "House Control\(version.map { " \($0)" } ?? "")", action: nil, keyEquivalent: "")
         about.addItem(.separator())
-        let updateTitle = availableUpdate != nil ? "Update Available (v\(availableUpdate!.version))…" : "Check for Updates…"
+        let updateTitle = availableUpdate != nil 
+            ? Self.loc("Update Available (v\(availableUpdate!.version))…", "Có bản cập nhật mới (v\(availableUpdate!.version))…")
+            : Self.loc("Check for Updates…", "Kiểm tra cập nhật…")
         let updateItem = about.addItem(withTitle: updateTitle, action: #selector(checkForUpdatesManual), keyEquivalent: "")
         updateItem.target = self
         updateItem.image = NSImage(systemSymbolName: availableUpdate != nil ? "arrow.down.circle.fill" : "arrow.triangle.2.circlepath", accessibilityDescription: nil)
         about.addItem(.separator())
         let links: [(String, String, URL)] = [
-            ("Website", "globe", About.website),
-            ("Privacy Policy", "hand.raised", About.privacy),
-            ("Support", "questionmark.circle", About.support),
+            (Self.loc("Website", "Trang web"), "globe", About.website),
+            (Self.loc("Privacy Policy", "Chính sách quyền riêng tư"), "hand.raised", About.privacy),
+            (Self.loc("Support", "Hỗ trợ kỹ thuật"), "questionmark.circle", About.support),
             ("", "", About.website),
             ("\(About.developer) on X", "at", About.x),
             ("\(About.developer) on GitHub", "chevron.left.forwardslash.chevron.right", About.github),
-            ("Source Code", "shippingbox", About.source),
+            (Self.loc("Source Code", "Mã nguồn"), "shippingbox", About.source),
         ]
         for (title, symbol, url) in links {
             guard !title.isEmpty else { about.addItem(.separator()); continue }
@@ -321,7 +334,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             item.representedObject = url
             item.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
         }
-        let item = NSMenuItem(title: "About House Control", action: nil, keyEquivalent: "")
+        let item = NSMenuItem(title: Self.loc("About House Control", "Giới thiệu House Control"), action: nil, keyEquivalent: "")
         item.submenu = about
         return item
     }
@@ -346,7 +359,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func checkForUpdatesInBackground() {
-        let current = (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.0.3"
+        let current = (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.0.4"
         Task { @MainActor [weak self] in
             guard let self else { return }
             do {
@@ -368,7 +381,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func checkForUpdatesManual() {
-        let current = (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.0.3"
+        let current = (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.0.4"
         Task { @MainActor [weak self] in
             guard let self else { return }
             do {
@@ -385,16 +398,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     self.promptUpdate(release)
                 } else {
                     let alert = NSAlert()
-                    alert.messageText = "You're Up to Date!"
-                    alert.informativeText = "House Control \(current) is currently the newest version available."
+                    alert.messageText = Self.loc("You're Up to Date!", "Bạn đang dùng phiên bản mới nhất!")
+                    alert.informativeText = Self.loc(
+                        "House Control \(current) is currently the newest version available.",
+                        "House Control \(current) hiện là phiên bản mới nhất."
+                    )
                     alert.alertStyle = .informational
                     alert.addButton(withTitle: "OK")
                     alert.runModal()
                 }
             } catch {
                 let alert = NSAlert()
-                alert.messageText = "Update Check Failed"
-                alert.informativeText = "Could not check GitHub for updates (\(error.localizedDescription)). Please check your internet connection and try again."
+                alert.messageText = Self.loc("Update Check Failed", "Kiểm tra cập nhật thất bại")
+                alert.informativeText = Self.loc(
+                    "Could not check GitHub for updates (\(error.localizedDescription)). Please check your internet connection and try again.",
+                    "Không thể kiểm tra cập nhật từ GitHub (\(error.localizedDescription)). Vui lòng kiểm tra kết nối mạng và thử lại."
+                )
                 alert.alertStyle = .warning
                 alert.addButton(withTitle: "OK")
                 alert.runModal()
@@ -411,18 +430,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func promptUpdate(_ release: AppUpdater.Release) {
-        let current = (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.0.3"
+        let current = (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.0.4"
         let alert = NSAlert()
-        alert.messageText = "House Control \(release.version) is Available!"
+        alert.messageText = Self.loc(
+            "House Control \(release.version) is Available!",
+            "Đã có bản cập nhật House Control \(release.version)!"
+        )
         let rawNotes = release.notes.trimmingCharacters(in: .whitespacesAndNewlines)
         let snippet = rawNotes.count > 500 ? String(rawNotes.prefix(500)) + "…" : rawNotes
-        alert.informativeText = "A new version of House Control is available on GitHub (currently running \(current)).\n\n"
-            + (snippet.isEmpty ? "" : "\(snippet)\n\n")
-            + "Would you like to download the updated disk image?"
+        let intro = Self.loc(
+            "A new version of House Control is available on GitHub (currently running \(current)).\n\n",
+            "Đã có phiên bản mới của House Control trên GitHub (bản hiện tại: \(current)).\n\n"
+        )
+        let outro = Self.loc(
+            "Would you like to download the updated disk image?",
+            "Bạn có muốn tải về tệp cài đặt (DMG) mới nhất không?"
+        )
+        alert.informativeText = intro + (snippet.isEmpty ? "" : "\(snippet)\n\n") + outro
         alert.alertStyle = .informational
-        alert.addButton(withTitle: "Download DMG")
-        alert.addButton(withTitle: "View on GitHub")
-        alert.addButton(withTitle: "Later")
+        alert.addButton(withTitle: Self.loc("Download DMG", "Tải bản DMG"))
+        alert.addButton(withTitle: Self.loc("View on GitHub", "Xem trên GitHub"))
+        alert.addButton(withTitle: Self.loc("Later", "Để sau"))
 
         let response = alert.runModal()
         if response == .alertFirstButtonReturn {
@@ -754,30 +782,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel.hide()
         let pairing = sync.enable(name: computerName)
         if pairingWindow == nil {
-            let window = QRWindowController(title: "Pair iPhone")
+            let window = QRWindowController(title: Self.loc("Pair iPhone", "Ghép đôi iPhone"))
             window.onClose = { [weak self] in self?.pairingWindow = nil }
-            window.addButton("Copy Pairing Link") { [weak self] in
+            window.addButton(Self.loc("Copy Pairing Link", "Sao chép liên kết ghép đôi")) { [weak self] in
                 guard let link = self?.sync.pairing?.link else { return }
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(link, forType: .string)
             }
-            window.addButton("Reset Pairing…") { [weak self] in self?.resetPairing() }
+            window.addButton(Self.loc("Reset Pairing…", "Đặt lại ghép đôi…")) { [weak self] in self?.resetPairing() }
             pairingWindow = window
         }
-        pairingWindow?.show(code: pairing.link,
-                            headline: "Scan with House Control on your iPhone",
-                            detail: "On the iPhone open Settings → Pair with Mac. Both devices must be on the same Wi-Fi. "
-                                + "Your floor plan, device links and connections stay the same on both, whichever one you edit; "
-                            + "they travel straight between them, encrypted with the key in this code.")
+        let headline = Self.loc("Scan with House Control on your iPhone", "Quét bằng ứng dụng House Control trên iPhone của bạn")
+        let detail = Self.loc(
+            "On the iPhone open Settings → Pair with Mac. Both devices must be on the same Wi-Fi. "
+                + "Your floor plan, device links and connections stay the same on both, whichever one you edit; "
+                + "they travel straight between them, encrypted with the key in this code.",
+            "Trên iPhone, mở Cài đặt → Ghép đôi với Mac. Cả hai thiết bị phải cùng mạng Wi-Fi. "
+                + "Sơ đồ nhà, liên kết thiết bị và kết nối sẽ được đồng bộ trực tiếp và mã hóa hai chiều."
+        )
+        pairingWindow?.show(code: pairing.link, headline: headline, detail: detail)
         refreshPairingWindow()
     }
 
     private func resetPairing() {
         let alert = NSAlert()
-        alert.messageText = "Reset pairing?"
-        alert.informativeText = "Every iPhone paired so far stops syncing until it scans the new code."
-        alert.addButton(withTitle: "Reset")
-        alert.addButton(withTitle: "Cancel")
+        alert.messageText = Self.loc("Reset pairing?", "Đặt lại ghép đôi?")
+        alert.informativeText = Self.loc(
+            "Every iPhone paired so far stops syncing until it scans the new code.",
+            "Tất cả iPhone đã ghép đôi sẽ ngừng đồng bộ cho đến khi quét mã mới."
+        )
+        alert.addButton(withTitle: Self.loc("Reset", "Đặt lại"))
+        alert.addButton(withTitle: Self.loc("Cancel", "Hủy"))
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         sync.reset(name: computerName)
         pairPhone()
@@ -786,13 +821,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func refreshPairingWindow() {
         let devices = sync.connectedDevices
         if !devices.isEmpty {
-            pairingWindow?.setStatus("Connected: \(devices.joined(separator: ", "))", active: true)
+            pairingWindow?.setStatus(Self.loc("Connected: \(devices.joined(separator: ", "))", "Đã kết nối: \(devices.joined(separator: ", "))"), active: true)
         } else if sync.isAdvertised {
-            pairingWindow?.setStatus("Waiting for an iPhone…", active: false)
+            pairingWindow?.setStatus(Self.loc("Waiting for an iPhone…", "Đang chờ kết nối từ iPhone…"), active: false)
         } else {
             // Until macOS lets the app use the local network, no phone can find this Mac.
-            pairingWindow?.setStatus("Allow Local Network access for House Control in System Settings → Privacy & Security",
-                                     active: false)
+            pairingWindow?.setStatus(
+                Self.loc(
+                    "Allow Local Network access for House Control in System Settings → Privacy & Security",
+                    "Cho phép quyền Mạng cục bộ (Local Network) cho House Control trong Cài đặt hệ thống → Quyền riêng tư & Bảo mật"
+                ),
+                active: false
+            )
         }
     }
 
@@ -818,15 +858,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         loginWindowExpiry = expiry
         DispatchQueue.main.asyncAfter(deadline: .now() + 600, execute: expiry)
         if loginWindow == nil {
-            let window = QRWindowController(title: "Smart Life Sign-In for \(device)")
+            let window = QRWindowController(title: Self.loc("Smart Life Sign-In for \(device)", "Đăng nhập Smart Life cho \(device)"))
             window.onClose = { [weak self] in self?.loginWindow = nil }
             loginWindow = window
         }
-        loginWindow?.show(code: content,
-                          headline: "Scan with the Smart Life app on \(device)",
-                          detail: "Switch to Smart Life on the iPhone, tap the scanner on its Home tab and confirm the login. "
-                              + "Then return to House Control: this window closes once the iPhone is signed in.")
-        loginWindow?.setStatus("Requested by \(device)", active: true)
+        let headline = Self.loc("Scan with the Smart Life app on \(device)", "Quét bằng ứng dụng Smart Life trên \(device)")
+        let detail = Self.loc(
+            "Switch to Smart Life on the iPhone, tap the scanner on its Home tab and confirm the login. "
+                + "Then return to House Control: this window closes once the iPhone is signed in.",
+            "Mở ứng dụng Smart Life trên iPhone, bấm biểu tượng quét mã tại tab Trang chủ và xác nhận đăng nhập. "
+                + "Sau đó quay lại House Control: cửa sổ này sẽ tự đóng lại khi đăng nhập thành công."
+        )
+        loginWindow?.show(code: content, headline: headline, detail: detail)
+        loginWindow?.setStatus(Self.loc("Requested by \(device)", "Yêu cầu từ \(device)"), active: true)
     }
 
     // MARK: - Menu (gives the editor window the usual shortcuts)

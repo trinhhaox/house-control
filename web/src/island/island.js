@@ -11,8 +11,8 @@ import { icon } from '../ui/icons.js';
 import { lightColor } from '../three/lights.js';
 import { MODE_COLORS } from '../three/ac.js';
 import { post, incoming, isNative } from '../bridge.js';
+import { t, getModeLabel } from '../i18n.js';
 
-const MODE_LABEL = { cool: 'Cool', heat: 'Heat', dry: 'Dry', fan: 'Fan', auto: 'Auto' };
 const NAVY = new THREE.Color('#17274f');
 const tmp = new THREE.Color();
 const css = (c) => `#${c.getHexString()}`;
@@ -47,9 +47,9 @@ export async function bootIsland(root) {
   const canvas = h('canvas', { tabindex: -1 });
   const title = h('div.isle-title', h('span.isle-badge', icon('home', 14)), h('b', config.name));
   const status = h('div.isle-status');
-  const power = h('button.isle-power', { 'aria-label': 'Everything on / off', onclick: toggleEverything }, icon('power', 15, 2.4));
-  const hide = h('button.isle-hide', { title: 'Hide Notch Island', 'aria-label': 'Hide Notch Island', onclick: () => post('toggleIsland') }, icon('eyeOff', 13, 2.2));
-  const quit = h('button.isle-quit', { title: 'Quit House Control', 'aria-label': 'Quit House Control', onclick: () => post('quit') }, icon('close', 13, 2.4));
+  const power = h('button.isle-power', { 'aria-label': t('toggleEverything', 'Everything on / off'), onclick: toggleEverything }, icon('power', 15, 2.4));
+  const hide = h('button.isle-hide', { title: t('hideIsland', 'Hide Notch Island'), 'aria-label': t('hideIsland', 'Hide Notch Island'), onclick: () => post('toggleIsland') }, icon('eyeOff', 13, 2.2));
+  const quit = h('button.isle-quit', { title: t('quitApp', 'Quit House Control'), 'aria-label': t('quitApp', 'Quit House Control'), onclick: () => post('quit') }, icon('close', 13, 2.4));
   const scenes = h('div.isle-scenes');
   const list = h('div.isle-list');
   const body = h('div.isle-body',
@@ -85,9 +85,9 @@ export async function bootIsland(root) {
     const el = h('div.chip.ac',
       bubble,
       h('div.chip-text', h('div.chip-name', cfg.name), sub),
-      h('button.chip-step', { 'aria-label': 'Cooler', onclick: step(-1) }, icon('minus', 13, 2.4)),
+      h('button.chip-step', { 'aria-label': t('cooler', 'Cooler'), onclick: step(-1) }, icon('minus', 13, 2.4)),
       value,
-      h('button.chip-step', { 'aria-label': 'Warmer', onclick: step(1) }, icon('plus', 13, 2.4)),
+      h('button.chip-step', { 'aria-label': t('warmer', 'Warmer'), onclick: step(1) }, icon('plus', 13, 2.4)),
       h('button.chip-power', { 'aria-label': `${cfg.name} power`, onclick: () => store.setAC(cfg.id, { on: !state.acs[cfg.id].on }) }, icon('power', 13, 2.4)));
     let shownMode = null;
     list.append(el);
@@ -97,7 +97,7 @@ export async function bootIsland(root) {
       el.style.setProperty('--c', MODE_COLORS[s.mode]);
       if (shownMode !== s.mode) { bubble.replaceChildren(icon(s.mode, 15)); shownMode = s.mode; }
       value.textContent = `${s.target}°`;
-      sub.textContent = `${s.on ? MODE_LABEL[s.mode] : 'Off'} · ${s.roomTemp.toFixed(0)}° inside`;
+      sub.textContent = `${s.on ? getModeLabel(s.mode) : t('off', 'Off')} · ${s.roomTemp.toFixed(0)}° ${t('inside', 'inside')}`;
     });
   }
 
@@ -121,10 +121,10 @@ export async function bootIsland(root) {
       el.style.setProperty('--c', '#5ec8ff');
       value.textContent = ready ? `${s.temperature.toFixed(1)}°` : '—';
       const details = [];
-      if (!online) details.push('Offline');
-      else if (!ready) details.push('Waiting for reading');
+      if (!online) details.push(t('offline', 'Offline'));
+      else if (!ready) details.push(t('waitingForReading', 'Waiting for reading'));
       if (Number.isFinite(s.humidity)) details.push(`${Math.round(s.humidity)}%`);
-      if (Number.isFinite(s.battery)) details.push(`${Math.round(s.battery)}% bat`);
+      if (Number.isFinite(s.battery)) details.push(`${Math.round(s.battery)}% ${t('bat', 'bat')}`);
       details.push(roomName.get(cfg.room));
       sub.textContent = details.join(' · ');
     });
@@ -175,8 +175,8 @@ export async function bootIsland(root) {
   }
 
   function lightLabel(cfg, s) {
-    if (!s.on) return 'Off';
-    return cfg.capabilities.includes('brightness') ? `${Math.round(s.brightness * 100)}%` : 'On';
+    if (!s.on) return t('off', 'Off');
+    return cfg.capabilities.includes('brightness') ? `${Math.round(s.brightness * 100)}%` : t('on', 'On');
   }
 
   function toggleEverything() {
@@ -256,9 +256,12 @@ export async function bootIsland(root) {
       earRight.replaceChildren(...(acOn ? plainEar(acOn.mode, `${acOn.target}°`, MODE_COLORS[acOn.mode]) : []));
     }
 
+    const lightsText = onCount ? ` ${t('islandLightsOn', 'lights on')}` : '';
     status.replaceChildren(
       h('i.dot', { style: onCount || acOn ? {} : { background: 'rgba(255,255,255,.25)', boxShadow: 'none' } }),
-      h('b', onCount ? `${onCount} of ${lights.length}` : 'No'), ' lights on', acOn ? ` · ${acOn.target}°` : '');
+      h('b', onCount ? `${onCount} / ${lights.length}` : t('islandNoLights', 'No lights on')),
+      lightsText,
+      acOn ? ` · ${acOn.target}°` : '');
     power.classList.toggle('on', onCount > 0 || Boolean(acOn));
     for (const [id, b] of sceneButtons) b.classList.toggle('active', state.scene === id);
     for (const row of rows) row();
@@ -310,7 +313,7 @@ export async function bootIsland(root) {
     const ear = (iconName, text, color) => (source ? plainEar('sparkles', text, '#c3b2ff') : plainEar(iconName, text, color));
     if (state.scene && state.scene !== before.scene) {
       const s = config.scenes.find((x) => x.id === state.scene);
-      if (s) return { left: ear(s.icon, s.name, '#a9cbff'), right: 'Scene' };
+      if (s) return { left: ear(s.icon, s.name, '#a9cbff'), right: t('scene', 'Scene') };
     }
     const lights = config.lights.filter((l) => {
       const [a, b] = [before.lights[l.id], state.lights[l.id]];
@@ -322,7 +325,7 @@ export async function bootIsland(root) {
     });
     if (acs.length === 1 && !lights.length) {
       const [cfg, s] = [acs[0], state.acs[acs[0].id]];
-      return { left: ear(s.mode, cfg.name, s.on ? MODE_COLORS[s.mode] : '#8fa3c7'), right: s.on ? `${s.target}°` : 'Off' };
+      return { left: ear(s.mode, cfg.name, s.on ? MODE_COLORS[s.mode] : '#8fa3c7'), right: s.on ? `${s.target}°` : t('off', 'Off') };
     }
     if (lights.length === 1 && !acs.length) {
       const [cfg, s] = [lights[0], state.lights[lights[0].id]];
@@ -330,7 +333,7 @@ export async function bootIsland(root) {
     }
     if (lights.length + acs.length > 1) {
       const on = Object.values(state.lights).filter((l) => l.on).length;
-      return { left: ear('home', config.name, on ? '#ffb46b' : '#8fa3c7'), right: on ? `${on} on` : 'All off' };
+      return { left: ear('home', config.name, on ? '#ffb46b' : '#8fa3c7'), right: on ? `${on} ${t('on', 'on')}` : t('allOff', 'All off') };
     }
     return null;
   }
@@ -344,6 +347,8 @@ export async function bootIsland(root) {
     update();
     if (change.remote) announce(before, change.source);
   });
+
+  window.addEventListener('house:languagechange', () => update());
 
   incoming.islandState = (next) => setState(next === 'expanded' ? 'expanded' : 'collapsed');
   incoming.adopt = (other) => store.adopt(other);

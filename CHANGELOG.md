@@ -3,6 +3,16 @@
 What changed in each release of House Control. The Mac app is on
 [Releases](https://github.com/0xProbabillity/house-control/releases); the iPhone app is on TestFlight.
 
+## 1.0.4 — 2026-10-18
+
+### Bilingual Localization (Vietnamese & English)
+
+- **Comprehensive Bilingual Support**: Full bilingual support (Tiếng Việt & English) across all app components, automatically adapting to system locale or user preference.
+- **Language Switcher**: Added in-app language switching directly within the floor plan menu with real-time interface reload.
+- **Web & 3D Control Panel**: All menus, climate controls (AC modes, fan speeds, air swing, sleep, eco), light controls, and comfort metric indicators fully translated.
+- **Notch Island**: Localized status indicators, climate mode labels, and device announcement badges.
+- **Native macOS & iOS Experience**: Menu bar extra, system alerts, update dialogs, iPhone pairing screens, and iOS settings localized in Vietnamese and English.
+
 ## 1.0.3 — 2026-10-18
 
 ### Notch Island toggle controls

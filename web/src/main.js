@@ -7,6 +7,7 @@ import { h, openMenu } from './ui/dom.js';
 import { icon } from './ui/icons.js';
 import { isNative, isPhone, post, incoming, haptic } from './bridge.js';
 import { publishWidgets, runWidgetAction } from './widgets.js';
+import { t, getLang, setLang } from './i18n.js';
 
 const DEMO_PLANS = [
   { id: 'home', name: 'Demo · Apartment' },
@@ -170,27 +171,53 @@ async function boot() {
     }));
     if (window.__HOUSE_BOOT__?.hasCustomPlan) {
       items.unshift({
-        label: 'My home',
+        label: t('myHome', 'My home'),
         selected: current === 'custom',
         icon: current === 'custom' ? icon('check', 16, 2.4) : null,
         action: () => post('selectPlan', { plan: 'custom' }),
       });
     }
+
+    const currentLang = getLang();
+    items.push('-',
+      {
+        label: 'Tiếng Việt 🇻🇳',
+        selected: currentLang === 'vi',
+        icon: currentLang === 'vi' ? icon('check', 16, 2.4) : null,
+        action: () => {
+          if (currentLang !== 'vi') {
+            setLang('vi');
+            location.reload();
+          }
+        },
+      },
+      {
+        label: 'English 🇬🇧',
+        selected: currentLang === 'en',
+        icon: currentLang === 'en' ? icon('check', 16, 2.4) : null,
+        action: () => {
+          if (currentLang !== 'en') {
+            setLang('en');
+            location.reload();
+          }
+        },
+      });
+
     if (isNative) {
       const isIslandOn = window.__HOUSE_BOOT__?.islandShown !== false;
       items.push('-',
         {
-          label: isIslandOn ? 'Hide Notch Island' : 'Show Notch Island',
+          label: isIslandOn ? t('hideIsland', 'Hide Notch Island') : t('showIsland', 'Show Notch Island'),
           icon: icon(isIslandOn ? 'eyeOff' : 'island', 16),
           action: () => post('toggleIsland'),
         },
-        { label: 'Edit home…', action: () => post('openEditor') },
-        { label: 'AI access…', action: () => post('openAgent') },
-        { label: 'Load floor plan…', action: () => post('loadPlan') },
-        { label: 'Reveal plan file', action: () => post('revealPlan') },
-        { label: 'Check for updates…', action: () => post('checkUpdates') },
+        { label: t('editHome', 'Edit home…'), action: () => post('openEditor') },
+        { label: t('aiAccess', 'AI access…'), action: () => post('openAgent') },
+        { label: t('loadPlan', 'Load floor plan…'), action: () => post('loadPlan') },
+        { label: t('revealPlan', 'Reveal plan file'), action: () => post('revealPlan') },
+        { label: t('checkForUpdates', 'Check for updates…'), action: () => post('checkUpdates') },
         '-',
-        { label: 'Quit House Control', action: () => post('quit') });
+        { label: t('quitApp', 'Quit House Control'), action: () => post('quit') });
     }
     openMenu(panel.anchorMenu, anchor, items);
   }
