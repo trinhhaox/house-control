@@ -2,7 +2,7 @@ import Foundation
 
 /// Checks for published releases on GitHub and compares semantic versions.
 public enum AppUpdater {
-    public static let repoOwner = "0xProbabillity"
+    public static let repoOwner = "trinhhaox"
     public static let repoName = "house-control"
     public static let releasesURL = URL(string: "https://github.com/\(repoOwner)/\(repoName)/releases")!
     public static let latestReleaseAPI = URL(string: "https://api.github.com/repos/\(repoOwner)/\(repoName)/releases/latest")!
